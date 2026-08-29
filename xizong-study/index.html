@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="西综作战室">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icon.svg">
-<link rel="stylesheet" href="./styles.css?v=12">
+<link rel="stylesheet" href="./styles.css?v=13">
 <title>西综作战室</title>
 </head>
 <body>
@@ -27,6 +27,6 @@
 <dialog id="recordDialog" class="sheet"><form id="recordForm" class="sheetin"><div class="handle"></div><div class="sheethead"><h3 id="recordTitle">记录学习</h3><button type="button" id="closeRecord" class="iconbtn">×</button></div><input type="hidden" id="recordTaskId"><label>科目<select id="rSubject"></select></label><label>年份<input id="rYear" type="number" min="2000" max="2035"></label><div class="grid2"><label>题数<input id="rTotal" type="number" min="0" inputmode="numeric"></label><label id="correctWrap">正确数<input id="rCorrect" type="number" min="0" inputmode="numeric"></label></div><label>用时（分钟）<input id="rMinutes" type="number" min="0" inputmode="numeric"></label><label>备注<textarea id="rNote" rows="3" placeholder="可选"></textarea></label><button class="btn primary" type="submit">保存记录</button></form></dialog>
 <dialog id="taskDialog" class="sheet"><form id="taskForm" class="sheetin"><div class="handle"></div><div class="sheethead"><h3 id="taskTitle">添加任务</h3><button type="button" id="closeTask" class="iconbtn">×</button></div><input type="hidden" id="taskId"><label>任务名称<input id="tName" required></label><label>日期<input id="tDate" type="date" required></label><label>类型<select id="tType"><option value="practice">刷题</option><option value="review">错题复盘</option><option value="mock">套卷</option><option value="study">西综复习（非刷题）</option></select></label><label id="qWrap">题量<input id="tQuestions" type="number" min="0" inputmode="numeric"></label><button class="btn primary" type="submit">保存任务</button></form></dialog>
 <div id="toast" class="toast"></div><input id="importFile" class="hidden" type="file" accept="application/json,.json">
-<script src="./app.js?v=12"></script>
+<script src="./app.js?v=13"></script>
 </body>
 </html>
