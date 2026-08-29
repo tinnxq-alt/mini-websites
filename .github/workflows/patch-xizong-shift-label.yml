@@ -1,0 +1,59 @@
+name: Patch Xizong shift label
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/patch-xizong-shift-label.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Rename 出 shift to 下
+        shell: python
+        run: |
+          from pathlib import Path
+
+          p = Path('xizong-study/app.js')
+          s = p.read_text(encoding='utf-8')
+
+          replacements = [
+            ("SH=['日','夜','出','休']", "SH=['日','夜','下','休']"),
+            ("出:{q:25,r:18,l:'复盘优先'}", "下:{q:25,r:18,l:'复盘优先'}"),
+            ("s.settings.anchorShift=st.anchorShift||s.settings.anchorShift;", "s.settings.anchorShift=(st.anchorShift==='出'?'下':st.anchorShift)||s.settings.anchorShift;"),
+            ("s.shifts=clone(src.shifts||src.customShifts||src.shiftOverrides||s.shifts);", "s.shifts=Object.fromEntries(Object.entries(clone(src.shifts||src.customShifts||src.shiftOverrides||s.shifts)).map(([d,v])=>[d,v==='出'?'下':v]));")
+          ]
+          for old, new in replacements:
+            if old not in s:
+              raise SystemExit(f'missing expected fragment: {old}')
+            s = s.replace(old, new, 1)
+          p.write_text(s, encoding='utf-8')
+
+          idx = Path('xizong-study/index.html')
+          h = idx.read_text(encoding='utf-8').replace('./styles.css?v=12','./styles.css?v=13').replace('./app.js?v=12','./app.js?v=13')
+          idx.write_text(h, encoding='utf-8')
+
+          sw = Path('xizong-study/sw.js')
+          w = sw.read_text(encoding='utf-8').replace('xizong-study-v12-20260829','xizong-study-v13-20260829').replace('./styles.css?v=12','./styles.css?v=13').replace('./app.js?v=12','./app.js?v=13')
+          sw.write_text(w, encoding='utf-8')
+      - name: Verify
+        run: |
+          node --check xizong-study/app.js
+          grep -q "SH=\['日','夜','下','休'\]" xizong-study/app.js
+          grep -q "下:{q:25,r:18,l:'复盘优先'}" xizong-study/app.js
+          grep -q "v==='出'?'下':v" xizong-study/app.js
+          grep -q "app.js?v=13" xizong-study/index.html
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add xizong-study/app.js xizong-study/index.html xizong-study/sw.js
+          git commit -m "Rename Xizong 出 shift to 下"
+          git push
