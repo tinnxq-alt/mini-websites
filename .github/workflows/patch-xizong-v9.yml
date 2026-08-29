@@ -34,7 +34,6 @@ jobs:
             ("`${t.questions||180} 题 · ${t.minutes||180} 分钟`", "`${t.questions||165} 题 · ${t.minutes||180} 分钟`"),
             ("<b>${s}</b><div class=\"progress\" style=\"margin-top:8px\"><i style=\"width:${state.subjectProgress[s]||0}%\"></i></div><div class=\"range-wrap\">", "<b>${s}</b><div class=\"range-wrap\">"),
             ("新增套卷默认 180 题、180 分钟。", "新增套卷默认 165 题、180 分钟。"),
-            ("questions:180,minutes:180,done:false});save();render();toast('套卷已添加')", "questions:165,minutes:180,done:false});save();render();toast('套卷已添加')"),
             ("<span class=\"badge\">PWA v8</span>", "<span class=\"badge\">PWA v9</span>"),
             ("row.querySelector('.progress i').style.width=v+'%'", "void 0")
           ]
