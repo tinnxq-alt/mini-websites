@@ -1,0 +1,28 @@
+name: Mini websites quality
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check Xizong Study JavaScript
+        run: node --check xizong-study/app.js
+      - name: Verify required v8 features
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "西综复习（非刷题）" xizong-study/index.html
+          grep -q "prog-range" xizong-study/app.js
+          grep -q "subject-check" xizong-study/app.js
+          grep -q "add-mock" xizong-study/app.js
+          grep -q "save-schedule" xizong-study/app.js
+          ! grep -q "默认循环" xizong-study/index.html
+          ! grep -q "默认循环" xizong-study/app.js
