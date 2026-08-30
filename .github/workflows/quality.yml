@@ -50,7 +50,7 @@ jobs:
           grep -q "套卷正确率趋势" xizong-study/integrated-runtime.js
           grep -q "导出学习记录 CSV" xizong-study/integrated-runtime.js
           grep -q "当天学习 · 加入滚动" xizong-study/integrated-runtime.js
-          grep -q "const rollingId=uid()" xizong-study/app.js
+          grep -q " const rollingId=uid()\|const rollingId=uid()" xizong-study/app.js
           grep -q "rollingInitial:true" xizong-study/app.js
           grep -q "p.label==='滚动项目已删除'" xizong-study/integrated-runtime.js
           grep -q "p.label==='已暂停滚动'" xizong-study/integrated-runtime.js
@@ -64,10 +64,16 @@ jobs:
           grep -Fq "window.__xizongSyncState?.(state);refresh(0)" xizong-study/integrated-runtime.js
           grep -Fq "window.__xizongRefreshTimer?.()" xizong-study/integrated-runtime.js
           grep -Fq "if(a==='toggle-rolling-pause')" xizong-study/integrated-runtime.js
+          grep -q "明日滚动" xizong-study/integrated-runtime.js
+          grep -q "明日计划" xizong-study/integrated-runtime.js
+          grep -q "今日顺延" xizong-study/integrated-runtime.js
+          grep -q "early-complete-one" xizong-study/integrated-runtime.js
+          grep -q "early-complete-initial" xizong-study/integrated-runtime.js
+          grep -q "uxDelayedFrom=today()" xizong-study/integrated-runtime.js
           grep -q "styles.css?v=39" xizong-study/index.html
-          grep -q "integrated-runtime.js?v=40" xizong-study/index.html
+          grep -q "integrated-runtime.js?v=41" xizong-study/index.html
           grep -q "app.js?v=40" xizong-study/index.html
-          grep -q "xizong-study-v40-20260830" xizong-study/sw.js
+          grep -q "xizong-study-v41-20260830" xizong-study/sw.js
           ! grep -q "timer.css" xizong-study/index.html
           ! grep -q "powerups.css" xizong-study/index.html
           ! grep -q 'data-ux="batch-pause"' xizong-study/integrated-runtime.js
