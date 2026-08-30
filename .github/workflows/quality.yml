@@ -16,6 +16,7 @@ jobs:
       - name: Check Xizong Study JavaScript
         run: |
           node --check xizong-study/app.js
+          node --check xizong-study/perf-guard.js
           node --check xizong-study/rolling-picker.js
           node --check xizong-study/rolling-custom.js
           node --check xizong-study/rolling-tasks.js
@@ -50,7 +51,9 @@ jobs:
           grep -q "initialTasks" xizong-study/rolling-today-sync.js
           grep -q "当天学习 · 加入滚动" xizong-study/rolling-today-sync.js
           grep -q "rolling-today-sync.js?v=23" xizong-study/index.html
-          grep -q "xizong-study-v24-20260830" xizong-study/sw.js
+          grep -q "EventDrivenMutationObserver" xizong-study/perf-guard.js
+          grep -q "perf-guard.js?v=25" xizong-study/index.html
+          grep -q "xizong-study-v25-20260830" xizong-study/sw.js
           ! grep -q "西综复习（非刷题）" xizong-study/index.html
           ! grep -q "tRollingItem" xizong-study/index.html
           ! grep -q "rollingTaskFields" xizong-study/index.html
