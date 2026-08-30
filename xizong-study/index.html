@@ -9,7 +9,8 @@
 <meta name="apple-mobile-web-app-title" content="西综作战室">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icon.svg">
-<link rel="stylesheet" href="./styles.css?v=13">
+<link rel="stylesheet" href="./styles.css?v=14">
+<link rel="stylesheet" href="./timer.css?v=14">
 <title>西综作战室</title>
 </head>
 <body>
@@ -24,9 +25,44 @@
 <button data-view="review"><span>↺</span><small>复盘</small></button>
 <button data-view="me"><span>☰</span><small>我的</small></button>
 </nav>
-<dialog id="recordDialog" class="sheet"><form id="recordForm" class="sheetin"><div class="handle"></div><div class="sheethead"><h3 id="recordTitle">记录学习</h3><button type="button" id="closeRecord" class="iconbtn">×</button></div><input type="hidden" id="recordTaskId"><label>科目<select id="rSubject"></select></label><label>年份<input id="rYear" type="number" min="2000" max="2035"></label><div class="grid2"><label>题数<input id="rTotal" type="number" min="0" inputmode="numeric"></label><label id="correctWrap">正确数<input id="rCorrect" type="number" min="0" inputmode="numeric"></label></div><label>用时（分钟）<input id="rMinutes" type="number" min="0" inputmode="numeric"></label><label>备注<textarea id="rNote" rows="3" placeholder="可选"></textarea></label><button class="btn primary" type="submit">保存记录</button></form></dialog>
-<dialog id="taskDialog" class="sheet"><form id="taskForm" class="sheetin"><div class="handle"></div><div class="sheethead"><h3 id="taskTitle">添加任务</h3><button type="button" id="closeTask" class="iconbtn">×</button></div><input type="hidden" id="taskId"><label>任务名称<input id="tName" required></label><label>日期<input id="tDate" type="date" required></label><label>类型<select id="tType"><option value="practice">刷题</option><option value="review">错题复盘</option><option value="mock">套卷</option><option value="study">西综复习（非刷题）</option></select></label><label id="qWrap">题量<input id="tQuestions" type="number" min="0" inputmode="numeric"></label><button class="btn primary" type="submit">保存任务</button></form></dialog>
+
+<dialog id="recordDialog" class="sheet"><form id="recordForm" class="sheetin">
+<div class="handle"></div><div class="sheethead"><h3 id="recordTitle">记录学习</h3><button type="button" id="closeRecord" class="iconbtn">×</button></div>
+<input type="hidden" id="recordTaskId">
+<label>记录类型<select id="rType"><option value="study">学习 / 刷题</option><option value="review">错题复盘</option><option value="mock">套卷</option></select></label>
+<label>科目<select id="rSubject"></select></label>
+<div id="mockRecordFields" class="hidden">
+<label>年份<input id="rYear" type="number" min="2000" max="2035"></label>
+<div class="grid2"><label>套卷题数<input id="rTotal" type="number" min="1" value="165" readonly></label><label>正确数<input id="rCorrect" type="number" min="0" max="165" inputmode="numeric"></label></div>
+</div>
+<label>实际用时（分钟）<input id="rMinutes" type="number" min="0" inputmode="numeric"></label>
+<label>备注<textarea id="rNote" rows="3" placeholder="可选"></textarea></label>
+<button class="btn primary" type="submit">保存记录</button>
+</form></dialog>
+
+<dialog id="taskDialog" class="sheet"><form id="taskForm" class="sheetin">
+<div class="handle"></div><div class="sheethead"><h3 id="taskTitle">添加任务</h3><button type="button" id="closeTask" class="iconbtn">×</button></div>
+<input type="hidden" id="taskId"><label>任务名称<input id="tName" required></label><label>日期<input id="tDate" type="date" required></label>
+<label>类型<select id="tType"><option value="practice">学习 / 刷题</option><option value="review">错题复盘</option><option value="mock">套卷</option><option value="study">西综复习（非刷题）</option></select></label>
+<label id="qWrap" class="hidden">套卷题数<input id="tQuestions" type="number" min="1" value="165" inputmode="numeric"></label>
+<button class="btn primary" type="submit">保存任务</button>
+</form></dialog>
+
+<dialog id="timerDialog" class="sheet"><div class="sheetin">
+<div class="handle"></div><div class="sheethead"><div><div class="small muted">学习计时</div><h3 id="timerTitle">开始学习</h3></div><button type="button" id="closeTimer" class="iconbtn">×</button></div>
+<div id="timerChoose">
+<p class="small muted timer-help">不预设计划用时。开始时再决定正计时、倒计时，或直接完成。</p>
+<div class="timer-mode-grid"><button class="timer-mode primary-soft" data-timer="up"><b>正计时</b><span>学多久算多久</span></button><button class="timer-mode primary-soft" data-timer="down-25"><b>25 分钟</b><span>倒计时</span></button><button class="timer-mode primary-soft" data-timer="down-45"><b>45 分钟</b><span>倒计时</span></button><button class="timer-mode primary-soft" data-timer="down-60"><b>60 分钟</b><span>倒计时</span></button></div>
+<div class="timer-custom"><input id="timerCustom" type="number" min="1" max="360" inputmode="numeric" placeholder="自定义分钟"><button type="button" class="btn secondary" data-timer="custom">开始倒计时</button></div>
+<button type="button" class="btn secondary" data-timer="direct" style="margin-top:10px">不计时，直接完成</button>
+</div>
+<div id="timerRunning" class="hidden">
+<div id="timerModeText" class="timer-mode-text"></div><div id="timerClock" class="timer-clock">00:00</div><div id="timerStatus" class="small muted timer-status"></div>
+<button type="button" class="btn primary" data-timer="finish">完成并记录用时</button><button type="button" class="btn secondary danger" data-timer="cancel" style="margin-top:9px">取消本次计时</button>
+</div>
+</div></dialog>
+
 <div id="toast" class="toast"></div><input id="importFile" class="hidden" type="file" accept="application/json,.json">
-<script src="./app.js?v=13"></script>
+<script src="./app.js?v=14"></script>
 </body>
 </html>
