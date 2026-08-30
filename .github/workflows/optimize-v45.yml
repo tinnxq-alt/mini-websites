@@ -1,0 +1,132 @@
+name: Optimize Xizong v45
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/optimize-v45.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Fix bugs and optimize runtime
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          app=Path('xizong-study/app.js')
+          s=app.read_text(encoding='utf-8')
+
+          # Share the large rolling catalog from integrated-runtime instead of shipping it twice.
+          pat=r"const ROLLING_CATALOG=\[.*?\]\.map\(\(x,i\)=>\(\{id:`preset-\$\{i\+1\}`,subject:x\[0\],group:x\[1\],name:x\[2\]\}\)\);"
+          s2,n=re.subn(pat,"const ROLLING_CATALOG=window.__xizongRollingCatalog||[];",s,count=1,flags=re.S)
+          assert n==1, f'catalog replacement count={n}'
+          s=s2
+
+          # Preserve runtime extension metadata such as uxDelayedFrom on rolling items/nodes.
+          old="function normalizeRollingItem(r){const startDate=r?.startDate||today(),intervals=Array.isArray(r?.intervals)&&r.intervals.length?r.intervals.map(Number):ROLLING_INTERVALS;return {id:r?.id||uid(),name:String(r?.name||'未命名复习'),subject:r?.subject||'综合',group:r?.group||'自定义',source:r?.source||'custom',startDate,intervals,nodes:Array.isArray(r?.nodes)&&r.nodes.length?r.nodes.map((n,i)=>({index:n.index||i+1,day:Number(n.day)||intervals[i]||i+1,date:n.date||add(startDate,Number(n.day)||intervals[i]||i+1),status:n.status||'pending',completedAt:n.completedAt||null,minutes:Number(n.minutes)||0})):makeRollingNodes(startDate,intervals),paused:!!r?.paused,createdAt:r?.createdAt||new Date().toISOString()}}"
+          new="function normalizeRollingItem(r){const startDate=r?.startDate||today(),intervals=Array.isArray(r?.intervals)&&r.intervals.length?r.intervals.map(Number):ROLLING_INTERVALS;return {...r,id:r?.id||uid(),name:String(r?.name||'未命名复习'),subject:r?.subject||'综合',group:r?.group||'自定义',source:r?.source||'custom',startDate,intervals,nodes:Array.isArray(r?.nodes)&&r.nodes.length?r.nodes.map((n,i)=>({...n,index:n.index||i+1,day:Number(n.day)||intervals[i]||i+1,date:n.date||add(startDate,Number(n.day)||intervals[i]||i+1),status:n.status||'pending',completedAt:n.completedAt||null,minutes:Number(n.minutes)||0})):makeRollingNodes(startDate,intervals),paused:!!r?.paused,createdAt:r?.createdAt||new Date().toISOString()}}"
+          assert old in s, 'normalizeRollingItem marker missing'
+          s=s.replace(old,new,1)
+
+          # Remove the redundant legacy rolling summary card; rolling tasks are already in today's task list.
+          assert '${rollingTodayCard()}' in s
+          s=s.replace('${rollingTodayCard()}','',1)
+
+          # Avoid building the heavy legacy rolling page before enhanced runtime replaces it.
+          old="const map={today:renderToday,plan:renderPlan,records:renderRecords,rolling:renderRolling,me:renderMe};"
+          new="const map={today:renderToday,plan:renderPlan,records:renderRecords,rolling:()=>window.__xizongRollingCatalog?'<div class=\"empty\">加载滚动复习…</div>':renderRolling(),me:renderMe};"
+          assert old in s, 'render map marker missing'
+          s=s.replace(old,new,1)
+
+          # Expose a safe in-place render hook so runtime no longer needs full page reloads.
+          old="function toast(x){const e=$('#toast');"
+          new="window.__xizongRender=()=>render();\nfunction toast(x){const e=$('#toast');"
+          assert old in s, 'toast marker missing'
+          s=s.replace(old,new,1)
+
+          # Remove duplicate dynamic importFile input; keep the single global input in index.html.
+          dup='<input id="importFile" class="hidden" type="file" accept="application/json">'
+          assert dup in s, 'duplicate import input marker missing'
+          s=s.replace(dup,'',1)
+
+          # Blank mock correct count must not silently become 0.
+          old="correct=Number($('#rCorrect').value);year=Number($('#rYear').value)||t?.year||existing?.year||null;if(!Number.isFinite(correct)||correct<0||correct>165)return toast('请输入 0–165 的正确数')"
+          new="const correctRaw=$('#rCorrect').value.trim();if(correctRaw==='')return toast('请输入 0–165 的正确数');correct=Number(correctRaw);year=Number($('#rYear').value)||t?.year||existing?.year||null;if(!Number.isFinite(correct)||correct<0||correct>165)return toast('请输入 0–165 的正确数')"
+          assert old in s, 'mock correct marker missing'
+          s=s.replace(old,new,1)
+          app.write_text(s,encoding='utf-8')
+
+          rt=Path('xizong-study/integrated-runtime.js')
+          s=rt.read_text(encoding='utf-8')
+
+          # Publish the single shared rolling catalog for app.js.
+          marker="].map((x,i)=>({id:`preset-${i+1}`,subject:x[0],group:x[1],name:x[2]}));\nconst PICKER_GROUPS=["
+          repl="].map((x,i)=>({id:`preset-${i+1}`,subject:x[0],group:x[1],name:x[2]}));\nwindow.__xizongRollingCatalog=CATALOG;\nconst PICKER_GROUPS=["
+          assert marker in s, 'catalog export marker missing'
+          s=s.replace(marker,repl,1)
+
+          # Centralized in-place commit: local storage + app memory + base render + enhancements.
+          marker="function findItem(state,id){return (state?.rollingReviews||[]).find(r=>r.id===id)}"
+          repl="function commitState(state,renderBase=true){write(state);window.__xizongSyncState?.(state);if(renderBase)window.__xizongRender?.();refresh(0)}\n"+marker
+          assert marker in s, 'findItem marker missing'
+          s=s.replace(marker,repl,1)
+
+          replacements={
+            "write(p.state);sessionStorage.removeItem(UNDO_KEY);if(p.label==='滚动项目已删除')sessionStorage.setItem('ux-restore-view','rolling');location.reload()":"sessionStorage.removeItem(UNDO_KEY);commitState(p.state)",
+            "syncLinkedTasks(state);write(state);sessionStorage.setItem('ux-restore-view','rolling');location.reload()":"syncLinkedTasks(state);commitState(state)",
+            "rollingRecord(state,item,node,minutes);ensureEarlyCompletedTask(state,item,node);write(state);sessionStorage.setItem('ux-restore-view','rolling');location.reload()":"rollingRecord(state,item,node,minutes);ensureEarlyCompletedTask(state,item,node);commitState(state)",
+            "write(state);sessionStorage.setItem('ux-restore-view','rolling');location.reload()":"commitState(state)",
+            "syncLinkedTasks(state);write(state);sessionStorage.setItem('ux-restore-view','rolling');location.reload();":"syncLinkedTasks(state);commitState(state);",
+            "write(state);sessionStorage.setItem('ux-restore-view','rolling');location.reload()":"commitState(state)",
+            "write(state);location.reload()":"commitState(state)",
+          }
+          for old,new in replacements.items():
+              s=s.replace(old,new)
+
+          # Replace the remaining sync-after-action reload path explicitly.
+          old="function syncAfterBaseAction(){setTimeout(()=>{const state=read();if(!state)return;const changed=syncLinkedTasks(state)|ensureInitialTasks(state)|ensureDueTasks(state);if(changed){write(state);location.reload()}else refresh(0)},35)}"
+          if old in s:
+              s=s.replace(old,"function syncAfterBaseAction(){setTimeout(()=>{const state=read();if(!state)return;const changed=syncLinkedTasks(state)|ensureInitialTasks(state)|ensureDueTasks(state);if(changed)commitState(state);else refresh(0)},35)}",1)
+
+          assert 'location.reload()' not in s, 'runtime still contains location.reload()'
+          rt.write_text(s,encoding='utf-8')
+
+          # Bump runtime/cache version.
+          p=Path('xizong-study/index.html')
+          s=p.read_text(encoding='utf-8').replace('integrated-runtime.js?v=44','integrated-runtime.js?v=45').replace('app.js?v=40','app.js?v=45')
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('xizong-study/sw.js')
+          s=p.read_text(encoding='utf-8').replace('xizong-study-v44-20260830','xizong-study-v45-20260830').replace('integrated-runtime.js?v=44','integrated-runtime.js?v=45').replace('app.js?v=40','app.js?v=45')
+          p.write_text(s,encoding='utf-8')
+
+      - name: Validate
+        run: |
+          node --check xizong-study/app.js
+          node --check xizong-study/integrated-runtime.js
+          grep -Fq 'window.__xizongRollingCatalog=CATALOG' xizong-study/integrated-runtime.js
+          grep -Fq 'const ROLLING_CATALOG=window.__xizongRollingCatalog||[]' xizong-study/app.js
+          grep -Fq 'window.__xizongRender' xizong-study/app.js
+          grep -Fq 'function commitState' xizong-study/integrated-runtime.js
+          grep -Fq "correctRaw===''" xizong-study/app.js
+          grep -Fq '...n,index:' xizong-study/app.js
+          ! grep -Fq 'location.reload()' xizong-study/integrated-runtime.js
+          ! grep -Fq 'const ROLLING_CATALOG=[' xizong-study/app.js
+          ! grep -Fq '<input id="importFile" class="hidden" type="file" accept="application/json">' xizong-study/app.js
+          grep -Fq 'integrated-runtime.js?v=45' xizong-study/index.html
+          grep -Fq 'app.js?v=45' xizong-study/index.html
+          grep -Fq 'xizong-study-v45-20260830' xizong-study/sw.js
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add xizong-study/app.js xizong-study/integrated-runtime.js xizong-study/index.html xizong-study/sw.js
+          git commit -m "Fix bugs and optimize Xizong runtime"
+          git push
