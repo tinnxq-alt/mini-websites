@@ -32,9 +32,9 @@ jobs:
           grep -q "data-view=\"rolling\"" xizong-study/index.html
           grep -q "rollCatalogCategory" xizong-study/index.html
           grep -q "立即同步到“今日到期”" xizong-study/index.html
-          grep -q "病理 + 生理 + 内科" xizong-study/integrated-runtime.js
-          grep -q "2. 外科" xizong-study/integrated-runtime.js
-          grep -q "3. 生化" xizong-study/integrated-runtime.js
+          grep -q "label:'病理 + 生理 + 内科'" xizong-study/integrated-runtime.js
+          grep -q "label:'外科'" xizong-study/integrated-runtime.js
+          grep -q "label:'生化'" xizong-study/integrated-runtime.js
           grep -q "自己添加" xizong-study/integrated-runtime.js
           grep -q "rollCustomVisible" xizong-study/integrated-runtime.js
           grep -q "ensureInitialTasks" xizong-study/integrated-runtime.js
@@ -73,9 +73,12 @@ jobs:
           grep -q "uxEarlyCompletedFrom" xizong-study/integrated-runtime.js
           grep -q "text:'已完成',cls:'done'" xizong-study/integrated-runtime.js
           grep -q "styles.css?v=39" xizong-study/index.html
-          grep -q "integrated-runtime.js?v=43" xizong-study/index.html
+          grep -q "integrated-runtime.js?v=44" xizong-study/index.html
           grep -q "app.js?v=40" xizong-study/index.html
-          grep -q "xizong-study-v43-20260830" xizong-study/sw.js
+          grep -q "xizong-study-v44-20260830" xizong-study/sw.js
+          ! grep -q "label:'1. 病理 + 生理 + 内科'" xizong-study/integrated-runtime.js
+          ! grep -q "label:'2. 外科'" xizong-study/integrated-runtime.js
+          ! grep -q "label:'3. 生化'" xizong-study/integrated-runtime.js
           ! grep -q "已暂停滚动" xizong-study/integrated-runtime.js
           ! grep -q "timer.css" xizong-study/index.html
           ! grep -q "powerups.css" xizong-study/index.html
