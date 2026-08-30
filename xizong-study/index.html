@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="西综作战室">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icon.svg">
-<link rel="stylesheet" href="./styles.css?v=16">
+<link rel="stylesheet" href="./styles.css?v=36">
 <link rel="stylesheet" href="./timer.css?v=16">
 <link rel="stylesheet" href="./powerups.css?v=22">
 <title>西综作战室</title>
@@ -29,7 +29,8 @@
 
 <dialog id="recordDialog" class="sheet"><form id="recordForm" class="sheetin">
 <div class="handle"></div><div class="sheethead"><h3 id="recordTitle">记录学习</h3><button type="button" id="closeRecord" class="iconbtn">×</button></div>
-<input type="hidden" id="recordTaskId">
+<input type="hidden" id="recordTaskId"><input type="hidden" id="recordEditId">
+<label>日期<input id="rDate" type="date" required></label>
 <label>记录类型<select id="rType"><option value="study">学习 / 刷题</option><option value="review">错题复盘</option><option value="mock">套卷</option></select></label>
 <label>科目<select id="rSubject"></select></label>
 <div id="mockRecordFields" class="hidden">
@@ -75,7 +76,7 @@
 </div></dialog>
 
 <div id="toast" class="toast"></div><input id="importFile" class="hidden" type="file" accept="application/json,.json">
-<script src="./integrated-runtime.js?v=35"></script>
-<script src="./app.js?v=35"></script>
+<script src="./integrated-runtime.js?v=36"></script>
+<script src="./app.js?v=36"></script>
 </body>
 </html>
