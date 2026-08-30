@@ -39,7 +39,7 @@ jobs:
           s = s.replace("if(raw===null){sessionStorage.removeItem(UNDO_KEY);return}", "if(raw===null)return")
           s = s.replace(";showUndo()}),delay)", ";}),delay)")
           s = s.replace("    if(ux==='undo')return undo();\n    if(ux==='confirm-undo'){sessionStorage.removeItem(UNDO_KEY);const el=$('#uxUndo');el?.classList.remove('show');return}\n", "")
-          for bad in ['UNDO_KEY','stashUndo(','showUndo(','confirm-undo','uxUndo','额外复习']:
+          for bad in ['UNDO_KEY','stashUndo(','showUndo(','confirm-undo','uxUndo','extraMin=','>额外复习<',":'额外复习'"]:
               if bad in s:
                   raise SystemExit(f'residual runtime token: {bad}')
           runtime.write_text(s)
