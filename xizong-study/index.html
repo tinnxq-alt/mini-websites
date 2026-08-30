@@ -11,6 +11,7 @@
 <link rel="icon" href="./icon.svg">
 <link rel="stylesheet" href="./styles.css?v=16">
 <link rel="stylesheet" href="./timer.css?v=16">
+<link rel="stylesheet" href="./rolling-picker.css?v=17">
 <title>西综作战室</title>
 </head>
 <body>
@@ -48,17 +49,24 @@
 <button class="btn primary" type="submit">保存任务</button>
 </form></dialog>
 
-
-<dialog id="rollingDialog" class="sheet"><form id="rollingForm" class="sheetin">
+<dialog id="rollingDialog" class="sheet"><form id="rollingForm" class="sheetin rolling-sheet">
 <div class="handle"></div><div class="sheethead"><div><div class="small muted">间隔复习</div><h3>添加滚动复习</h3></div><button type="button" id="closeRolling" class="iconbtn">×</button></div>
-<label>从预置章节选择<select id="rollPreset"></select></label>
-<div class="small muted" style="text-align:center;margin:-4px 0 10px">或</div>
-<label>自定义内容<input id="rollCustomName" placeholder="例如：呼吸系统薄弱专题"></label>
-<label>自定义所属学科<select id="rollSubject"></select></label>
-<label>学习完成日期<input id="rollStart" type="date" required></label>
-<div class="callout">加入后按 1 / 3 / 7 / 15 / 30 天自动生成复习节点。每个人从自己的完成日期开始，不统一推送进度。</div>
+<div class="roll-mode-switch"><button type="button" class="roll-mode active" data-roll-mode="preset">从目录选择</button><button type="button" class="roll-mode" data-roll-mode="custom">自定义</button></div>
+<div id="rollPresetPanel">
+<div class="roll-step"><span>1</span><label>选择学科<select id="rollCatalogSubject"></select></label></div>
+<div class="roll-step"><span>2</span><label>选择系统<select id="rollGroup"></select></label></div>
+<div class="roll-step"><span>3</span><label>选择章节<select id="rollPreset"></select></label></div>
+<div id="rollPresetPreview" class="roll-preview"></div>
+</div>
+<div id="rollCustomPanel" class="hidden">
+<label>复习内容<input id="rollCustomName" placeholder="例如：呼吸系统薄弱专题"></label>
+<label>所属学科<select id="rollSubject"></select></label>
+</div>
+<label>本轮学习完成日期<input id="rollStart" type="date" required></label>
+<div class="callout">系统会从这个完成日期开始，自动安排第 1 / 3 / 7 / 15 / 30 天复习。不同人的进度彼此独立。</div>
 <button class="btn primary" type="submit">加入滚动复习</button>
 </form></dialog>
+
 <dialog id="timerDialog" class="sheet"><div class="sheetin">
 <div class="handle"></div><div class="sheethead"><div><div class="small muted">学习计时</div><h3 id="timerTitle">开始学习</h3></div><button type="button" id="closeTimer" class="iconbtn">×</button></div>
 <div id="timerChoose">
@@ -75,5 +83,6 @@
 
 <div id="toast" class="toast"></div><input id="importFile" class="hidden" type="file" accept="application/json,.json">
 <script src="./app.js?v=16"></script>
+<script src="./rolling-picker.js?v=17"></script>
 </body>
 </html>
