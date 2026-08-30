@@ -1,0 +1,81 @@
+name: Rolling stay on page v34
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/rolling-stay-on-page-v34.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Keep rolling actions on rolling page and confirm pause
+        shell: python
+        run: |
+          from pathlib import Path
+
+          rt=Path('xizong-study/integrated-runtime.js')
+          s=rt.read_text(encoding='utf-8')
+
+          old="const confirmable=String(p.label||'').startsWith('已批量')||p.label==='滚动项目已删除';"
+          new="const confirmable=String(p.label||'').startsWith('已批量')||p.label==='滚动项目已删除'||p.label==='已暂停滚动';"
+          assert old in s, 'showUndo confirmable block not found'
+          s=s.replace(old,new,1)
+
+          old="function undo(){let p;try{p=JSON.parse(sessionStorage.getItem(UNDO_KEY)||'null')}catch{}if(!p?.state)return;write(p.state);sessionStorage.removeItem(UNDO_KEY);if(p.label==='滚动项目已删除')sessionStorage.setItem('ux-restore-view','rolling');location.reload()}"
+          new="function undo(){let p;try{p=JSON.parse(sessionStorage.getItem(UNDO_KEY)||'null')}catch{}if(!p?.state)return;write(p.state);sessionStorage.removeItem(UNDO_KEY);if(['滚动项目已删除','已暂停滚动','已恢复滚动'].includes(p.label))sessionStorage.setItem('ux-restore-view','rolling');location.reload()}"
+          assert old in s, 'undo function not found'
+          s=s.replace(old,new,1)
+
+          old="function completeInitial(taskId){const state=read(),task=(state?.tasks||[]).find(t=>t.id===taskId&&t.type==='rolling'&&t.rollingInitial);if(!state||!task)return;task.done=true;syncLinkedTasks(state);write(state);location.reload()}"
+          new="function completeInitial(taskId){const state=read(),task=(state?.tasks||[]).find(t=>t.id===taskId&&t.type==='rolling'&&t.rollingInitial);if(!state||!task)return;task.done=true;syncLinkedTasks(state);write(state);sessionStorage.setItem('ux-restore-view','rolling');location.reload()}"
+          assert old in s, 'completeInitial not found'
+          s=s.replace(old,new,1)
+
+          old="write(state);location.reload()}\nfunction mutateSelected(kind){"
+          new="write(state);sessionStorage.setItem('ux-restore-view','rolling');location.reload()}\nfunction mutateSelected(kind){"
+          assert old in s, 'mutateOne tail not found'
+          s=s.replace(old,new,1)
+
+          old="  syncLinkedTasks(state);write(state);location.reload();\n}\nfunction togglePause(id){"
+          new="  syncLinkedTasks(state);write(state);sessionStorage.setItem('ux-restore-view','rolling');location.reload();\n}\nfunction togglePause(id){"
+          assert old in s, 'mutateSelected tail not found'
+          s=s.replace(old,new,1)
+
+          old="function togglePause(id){const state=read(),item=findItem(state,id);if(!item)return;stashUndo(item.paused?'已恢复滚动':'已暂停滚动');item.paused=!item.paused;if(item.paused)state.tasks=(state.tasks||[]).filter(t=>!(t.type==='rolling'&&t.rollingId===id&&!t.done));else ensureDueTasks(state);write(state);location.reload()}"
+          new="function togglePause(id){const state=read(),item=findItem(state,id);if(!item)return;stashUndo(item.paused?'已恢复滚动':'已暂停滚动');item.paused=!item.paused;if(item.paused)state.tasks=(state.tasks||[]).filter(t=>!(t.type==='rolling'&&t.rollingId===id&&!t.done));else ensureDueTasks(state);write(state);sessionStorage.setItem('ux-restore-view','rolling');location.reload()}"
+          assert old in s, 'togglePause not found'
+          s=s.replace(old,new,1)
+          rt.write_text(s,encoding='utf-8')
+
+          app=Path('xizong-study/app.js')
+          s=app.read_text(encoding='utf-8')
+          old="let state=load(),view='today',installPrompt=null,timerTaskId=null,timerTick=null,timerAlerted=false,editingProgressSubject=null;"
+          new="let state=load(),view=sessionStorage.getItem('ux-restore-view')||'today',installPrompt=null,timerTaskId=null,timerTick=null,timerAlerted=false,editingProgressSubject=null;"
+          assert old in s, 'initial view declaration not found'
+          s=s.replace(old,new,1)
+          app.write_text(s,encoding='utf-8')
+
+          p=Path('xizong-study/index.html')
+          s=p.read_text(encoding='utf-8').replace('integrated-runtime.js?v=33','integrated-runtime.js?v=34').replace('app.js?v=33','app.js?v=34')
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('xizong-study/sw.js')
+          s=p.read_text(encoding='utf-8').replace('xizong-study-v33-20260830','xizong-study-v34-20260830').replace('integrated-runtime.js?v=33','integrated-runtime.js?v=34').replace('app.js?v=33','app.js?v=34')
+          p.write_text(s,encoding='utf-8')
+      - name: Validate JavaScript
+        run: |
+          node --check xizong-study/integrated-runtime.js
+          node --check xizong-study/app.js
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add xizong-study/integrated-runtime.js xizong-study/app.js xizong-study/index.html xizong-study/sw.js
+          git commit -m "Keep rolling actions on rolling page"
+          git push
