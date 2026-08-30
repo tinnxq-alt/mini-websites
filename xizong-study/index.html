@@ -42,9 +42,8 @@
 
 <dialog id="taskDialog" class="sheet"><form id="taskForm" class="sheetin">
 <div class="handle"></div><div class="sheethead"><h3 id="taskTitle">添加任务</h3><button type="button" id="closeTask" class="iconbtn">×</button></div>
-<input type="hidden" id="taskId"><label id="tNameWrap">任务名称<input id="tName" required></label><label>日期<input id="tDate" type="date" required></label>
-<label>类型<select id="tType"><option value="practice">学习 / 刷题</option><option value="review">错题复盘</option><option value="rolling">滚动复习</option><option value="mock">套卷</option><option value="study">西综复习（非刷题）</option></select></label>
-<div id="rollingTaskFields" class="hidden"><label>滚动复习项目<select id="tRollingItem"></select></label><div class="small muted" style="margin:-4px 0 10px">与“滚动复习”项目库完全同步：未到期、已暂停或已完成全部轮次的项目也可以手动安排。</div></div>
+<input type="hidden" id="taskId"><label>任务名称<input id="tName" required></label><label>日期<input id="tDate" type="date" required></label>
+<label>类型<select id="tType"><option value="practice">学习 / 刷题</option><option value="review">错题复盘</option><option value="mock">套卷</option><option value="study">西综复习（非刷题）</option></select></label>
 <label id="qWrap" class="hidden">套卷题数<input id="tQuestions" type="number" min="1" value="165" inputmode="numeric"></label>
 <button class="btn primary" type="submit">保存任务</button>
 </form></dialog>
@@ -56,7 +55,7 @@
 <input id="rollCustomName" type="hidden" value="">
 <select id="rollSubject" class="hidden" tabindex="-1" aria-hidden="true"></select>
 <label>本轮学习完成日期<input id="rollStart" type="date" required></label>
-<div class="callout">从本轮学习完成日期开始，自动安排后续滚动复习。每个人按自己的学习进度独立计算。</div>
+<div class="callout">加入后自动同步到今日任务；后续到期轮次也会自动进入“今天只做这些”，无需在“添加任务”里再次选择。</div>
 <button class="btn primary" type="submit">加入滚动复习</button>
 </form></dialog>
 
@@ -75,7 +74,7 @@
 </div></dialog>
 
 <div id="toast" class="toast"></div><input id="importFile" class="hidden" type="file" accept="application/json,.json">
-<script src="./rolling-tasks.js?v=20"></script>
+<script src="./rolling-tasks.js?v=21"></script>
 <script src="./app.js?v=16"></script>
 <script src="./rolling-picker.js?v=18"></script>
 </body>
