@@ -47,7 +47,7 @@ function normalize(src){
   return s;
 }
 function load(){for(const k of [STORE_KEY,'xizong-study-v10','xizong-study-v9','xizong-study-v8','xizong-study-os-v1','xizong-study-v7']){try{const r=localStorage.getItem(k);if(r)return normalize(JSON.parse(r))}catch{}}return clone(DEFAULT)}
-let state=load(),view='today',installPrompt=null,timerTaskId=null,timerTick=null,timerAlerted=false,editingProgressSubject=null;
+let state=load(),view=sessionStorage.getItem('ux-restore-view')||'today',installPrompt=null,timerTaskId=null,timerTick=null,timerAlerted=false,editingProgressSubject=null;
 function save(){state.version=V;localStorage.setItem(STORE_KEY,JSON.stringify(state));try{const r=indexedDB.open(DB_NAME,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('state'))r.result.createObjectStore('state')};r.onsuccess=()=>{const tx=r.result.transaction('state','readwrite');tx.objectStore('state').put(clone(state),'main')}}catch{}}
 function cycleShift(ds){let i=SH.indexOf(state.settings.anchorShift)+diff(state.settings.anchor,ds);i=((i%4)+4)%4;return SH[i]}
 function shift(ds){return state.shifts[ds]||cycleShift(ds)}
