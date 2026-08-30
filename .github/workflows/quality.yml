@@ -42,15 +42,19 @@ jobs:
           grep -q "套卷正确率趋势" xizong-study/integrated-runtime.js
           grep -q "导出学习记录 CSV" xizong-study/integrated-runtime.js
           grep -q "当天学习 · 加入滚动" xizong-study/integrated-runtime.js
-          grep -q "confirm-undo" xizong-study/integrated-runtime.js
-          grep -q "startsWith('已批量')" xizong-study/integrated-runtime.js
-          grep -q "integrated-runtime.js?v=30" xizong-study/index.html
-          grep -q "app.js?v=30" xizong-study/index.html
-          grep -q "xizong-study-v30-20260830" xizong-study/sw.js
+          grep -q "integrated-runtime.js?v=32" xizong-study/index.html
+          grep -q "app.js?v=32" xizong-study/index.html
+          grep -q "xizong-study-v32-20260830" xizong-study/sw.js
           ! grep -q "MutationObserver" xizong-study/integrated-runtime.js
           ! grep -q "任务状态已更新" xizong-study/integrated-runtime.js
           ! grep -q "学习记录已更新" xizong-study/integrated-runtime.js
           ! grep -q "toast('已完成')" xizong-study/app.js
+          ! grep -q "toast('滚动复习已完成')" xizong-study/app.js
+          ! grep -q "toast('已顺延 1 天')" xizong-study/app.js
+          ! grep -q "toast('已跳过本轮')" xizong-study/app.js
+          ! grep -q "toast('已加入滚动复习')" xizong-study/app.js
+          ! grep -q "stashUndo('当天滚动学习已完成')" xizong-study/integrated-runtime.js
+          ! grep -q "stashUndo(kind==='complete'" xizong-study/integrated-runtime.js
           ! grep -q "西综复习（非刷题）" xizong-study/index.html
           ! grep -q "tRollingItem" xizong-study/index.html
           ! grep -q "rollingTaskFields" xizong-study/index.html
