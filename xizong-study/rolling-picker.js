@@ -13,18 +13,52 @@ const CATALOG=[
 ['外科','颈胸','颈部疾病、食管、乳房、胃肿瘤、腹腔感染'],['外科','腹部/泌尿外科','腹部损伤、肠梗阻、阑尾炎、大肠癌'],['外科','腹部/泌尿外科','其他大肠肛管疾病、腹外疝、细菌性肝脓肿、门脉高压'],['外科','腹部/泌尿外科','胆管疾病'],['外科','腹部/泌尿外科','胰腺肿瘤、周围血管疾病、泌外感染和肿瘤、泌外梗阻和损伤'],['外科','运动系统','运动畸形、慢性损伤、手外伤、骨关节感染、非化脓性关节炎、骨肿瘤'],['外科','运动系统','躯干骨损伤、脊髓损伤、颈腰椎退行性疾病'],['外科','运动系统','四肢骨脱位、骨折概论'],['外科','外科总论','输血、体液失衡、营养代谢、烧伤、围手术期'],['外科','外科总论','感染、麻醉、休克、其他外总'],
 ['生化','生化','糖代谢Ⅰ：无氧/有氧氧化、磷酸戊糖、糖原、糖异生'],['生化','生化','脂质与能量代谢：氧化磷酸化、胆固醇、胆汁酸、脂肪代谢'],['生化','生化','含氮代谢：氨基酸代谢、核苷酸代谢'],['生化','生化','综合代谢：氨基酸、脂蛋白、蛋白质、生物转化、维生素、胆色素'],['生化','生化','酶与核酸①：酶、核酸、DNA合成'],['生化','生化','核酸②：转录、翻译'],['生化','生化','基因调控：基因表达调控、真核基因、DNA损伤']
 ].map((x,i)=>({id:`preset-${i+1}`,subject:x[0],group:x[1],name:x[2]}));
-const SUBJECT_ORDER=['病理','生化','外科','生理','内科','综合'];
-let mode='preset';
-function activeSubjects(){try{const x=JSON.parse(localStorage.getItem('xizong-study-v11')||'{}');return Array.isArray(x.activeSubjects)?x.activeSubjects:[]}catch{return []}}
-function setOptions(el,items,valueFn=x=>x,labelFn=x=>x){if(!el)return;el.innerHTML='';items.forEach(x=>{const o=document.createElement('option');o.value=valueFn(x);o.textContent=labelFn(x);el.appendChild(o)})}
-function preview(){const id=$('#rollPreset')?.value,item=CATALOG.find(x=>x.id===id),box=$('#rollPresetPreview');if(!box)return;if(!item){box.innerHTML='<span class="small muted">当前没有可选章节</span>';return}box.innerHTML=`<div class="small muted">已选章节</div><b>${item.name}</b><div class="small muted" style="margin-top:4px">${item.subject==='综合'?'综合 · 跨学科':item.subject} · ${item.group}</div>`}
-function syncChapters(){const subject=$('#rollCatalogSubject')?.value,group=$('#rollGroup')?.value;const items=CATALOG.filter(x=>x.subject===subject&&x.group===group);setOptions($('#rollPreset'),items,x=>x.id,x=>x.name);preview()}
-function syncGroups(){const subject=$('#rollCatalogSubject')?.value;const groups=[...new Set(CATALOG.filter(x=>x.subject===subject).map(x=>x.group))];setOptions($('#rollGroup'),groups);syncChapters()}
-function syncSubjects(){const available=new Set(CATALOG.map(x=>x.subject));const items=SUBJECT_ORDER.filter(x=>available.has(x));setOptions($('#rollCatalogSubject'),items,x=>x,x=>x==='综合'?'综合（跨学科）':x);const preferred=activeSubjects().find(x=>items.includes(x));if(preferred)$('#rollCatalogSubject').value=preferred;syncGroups()}
-function setMode(next){mode=next==='custom'?'custom':'preset';const preset=$('#rollPresetPanel'),custom=$('#rollCustomPanel'),input=$('#rollCustomName');preset?.classList.toggle('hidden',mode==='custom');custom?.classList.toggle('hidden',mode!=='custom');document.querySelectorAll('.roll-mode').forEach(b=>b.classList.toggle('active',b.dataset.rollMode===mode));if(input){input.required=mode==='custom';if(mode==='preset')input.value=''}if(mode==='custom'){const a=activeSubjects();if(a[0]&&$('#rollSubject'))$('#rollSubject').value=a[0]}}
-function prepare(){if(!$('#rollingDialog')||!$('#rollCatalogSubject'))return;syncSubjects();setMode('preset');const input=$('#rollCustomName');if(input)input.value='';preview()}
-document.addEventListener('click',e=>{const modeBtn=e.target.closest('[data-roll-mode]');if(modeBtn){e.preventDefault();setMode(modeBtn.dataset.rollMode);return}const add=e.target.closest('[data-a="add-rolling"]');if(add)setTimeout(prepare,0)});
-document.addEventListener('change',e=>{if(e.target.id==='rollCatalogSubject')syncGroups();else if(e.target.id==='rollGroup')syncChapters();else if(e.target.id==='rollPreset')preview()});
-const form=$('#rollingForm');if(form)form.addEventListener('submit',e=>{if(mode==='custom'&&!$('#rollCustomName').value.trim()){e.preventDefault();e.stopImmediatePropagation();$('#rollCustomName').focus();$('#rollCustomName').reportValidity()}},{capture:true});
+
+const GROUPS=[
+{id:'core',label:'1. 病理 + 生理 + 内科',subjects:['病理','生理','内科','综合']},
+{id:'surgery',label:'2. 外科',subjects:['外科']},
+{id:'biochem',label:'3. 生化',subjects:['生化']}
+];
+
+function setCategories(){
+  const el=$('#rollCatalogCategory');
+  if(!el)return;
+  el.innerHTML='';
+  GROUPS.forEach(g=>{const o=document.createElement('option');o.value=g.id;o.textContent=g.label;el.appendChild(o)});
+}
+
+function setContents(){
+  const category=GROUPS.find(g=>g.id===$('#rollCatalogCategory')?.value)||GROUPS[0];
+  const el=$('#rollPreset');
+  if(!el)return;
+  el.innerHTML='';
+  const items=CATALOG.filter(x=>category.subjects.includes(x.subject));
+  const groups=[...new Set(items.map(x=>x.group))];
+  groups.forEach(group=>{
+    const og=document.createElement('optgroup');
+    og.label=group;
+    items.filter(x=>x.group===group).forEach(x=>{
+      const o=document.createElement('option');
+      o.value=x.id;
+      o.textContent=x.name;
+      og.appendChild(o);
+    });
+    el.appendChild(og);
+  });
+}
+
+function prepare(){
+  if(!$('#rollingDialog')||!$('#rollCatalogCategory'))return;
+  setCategories();
+  setContents();
+  if($('#rollCustomName'))$('#rollCustomName').value='';
+}
+
+document.addEventListener('click',e=>{
+  if(e.target.closest('[data-a="add-rolling"]'))setTimeout(prepare,0);
+});
+document.addEventListener('change',e=>{
+  if(e.target.id==='rollCatalogCategory')setContents();
+});
 prepare();
 })();
