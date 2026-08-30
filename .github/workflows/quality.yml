@@ -58,10 +58,16 @@ jobs:
           grep -q "else sessionStorage.removeItem(UNDO_KEY)" xizong-study/integrated-runtime.js
           grep -q "ux-restore-view" xizong-study/integrated-runtime.js
           grep -q "view=sessionStorage.getItem('ux-restore-view')||'today'" xizong-study/app.js
+          grep -Fq "window.__xizongSyncState" xizong-study/app.js
+          grep -Fq "window.__xizongRefreshTimer" xizong-study/app.js
+          grep -Fq "已暂停；时间已冻结" xizong-study/app.js
+          grep -Fq "window.__xizongSyncState?.(state);refresh(0)" xizong-study/integrated-runtime.js
+          grep -Fq "window.__xizongRefreshTimer?.()" xizong-study/integrated-runtime.js
+          grep -Fq "if(a==='toggle-rolling-pause')" xizong-study/integrated-runtime.js
           grep -q "styles.css?v=39" xizong-study/index.html
-          grep -q "integrated-runtime.js?v=38" xizong-study/index.html
-          grep -q "app.js?v=38" xizong-study/index.html
-          grep -q "xizong-study-v39-20260830" xizong-study/sw.js
+          grep -q "integrated-runtime.js?v=40" xizong-study/index.html
+          grep -q "app.js?v=40" xizong-study/index.html
+          grep -q "xizong-study-v40-20260830" xizong-study/sw.js
           ! grep -q "timer.css" xizong-study/index.html
           ! grep -q "powerups.css" xizong-study/index.html
           ! grep -q 'data-ux="batch-pause"' xizong-study/integrated-runtime.js
