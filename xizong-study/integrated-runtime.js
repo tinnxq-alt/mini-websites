@@ -147,8 +147,8 @@ function todayRollingEnhance(){
 
 /* ---------- operations / undo ---------- */
 function stashUndo(label){const state=read();if(!state)return;try{sessionStorage.setItem(UNDO_KEY,JSON.stringify({label,state,at:Date.now()}))}catch{}}
-function showUndo(){let p;try{p=JSON.parse(sessionStorage.getItem(UNDO_KEY)||'null')}catch{}if(!p||Date.now()-p.at>12000){sessionStorage.removeItem(UNDO_KEY);return}let el=$('#uxUndo');if(!el){el=document.createElement('div');el.id='uxUndo';el.className='ux-undo';document.body.appendChild(el)}const batch=String(p.label||'').startsWith('已批量');el.innerHTML=`<span>${esc(p.label||'已更新')}</span><button data-ux="undo">撤销</button>${batch?'<button data-ux="confirm-undo">确定</button>':''}`;el.classList.add('show');clearTimeout(showUndo.t);showUndo.t=setTimeout(()=>{el.classList.remove('show');sessionStorage.removeItem(UNDO_KEY)},9000)}
-function undo(){let p;try{p=JSON.parse(sessionStorage.getItem(UNDO_KEY)||'null')}catch{}if(!p?.state)return;write(p.state);sessionStorage.removeItem(UNDO_KEY);location.reload()}
+function showUndo(){let p;try{p=JSON.parse(sessionStorage.getItem(UNDO_KEY)||'null')}catch{}if(!p||Date.now()-p.at>12000){sessionStorage.removeItem(UNDO_KEY);return}let el=$('#uxUndo');if(!el){el=document.createElement('div');el.id='uxUndo';el.className='ux-undo';document.body.appendChild(el)}const confirmable=String(p.label||'').startsWith('已批量')||p.label==='滚动项目已删除';el.innerHTML=`<span>${esc(p.label||'已更新')}</span><button data-ux="undo">撤销</button>${confirmable?'<button data-ux="confirm-undo">确定</button>':''}`;el.classList.add('show');clearTimeout(showUndo.t);showUndo.t=setTimeout(()=>{el.classList.remove('show');sessionStorage.removeItem(UNDO_KEY)},9000)}
+function undo(){let p;try{p=JSON.parse(sessionStorage.getItem(UNDO_KEY)||'null')}catch{}if(!p?.state)return;write(p.state);sessionStorage.removeItem(UNDO_KEY);if(p.label==='滚动项目已删除')sessionStorage.setItem('ux-restore-view','rolling');location.reload()}
 function completeInitial(taskId){const state=read(),task=(state?.tasks||[]).find(t=>t.id===taskId&&t.type==='rolling'&&t.rollingInitial);if(!state||!task)return;task.done=true;syncLinkedTasks(state);write(state);location.reload()}
 function mutateOne(action,id,index){const state=read(),item=findItem(state,id),node=findNode(item,index);if(!state||!item||!node)return;if(action==='complete'){const raw=prompt('本次复习用时（分钟，可留空）','');if(raw===null){sessionStorage.removeItem(UNDO_KEY);return}const minutes=Math.max(0,Number(raw)||0);node.status='done';node.completedAt=new Date().toISOString();node.minutes=minutes;rollingRecord(state,item,node,minutes);markLinkedTask(state,item,node,true)}else if(action==='delay'){node.date=add(node.date,1);state.tasks=(state.tasks||[]).filter(t=>!(t.type==='rolling'&&t.rollingId===id&&Number(t.rollingIndex)===Number(index)&&!t.done))}else{node.status='skipped';node.completedAt=new Date().toISOString();markLinkedTask(state,item,node,true)}write(state);location.reload()}
 function mutateSelected(kind){
@@ -161,7 +161,7 @@ function mutateSelected(kind){
   syncLinkedTasks(state);write(state);location.reload();
 }
 function togglePause(id){const state=read(),item=findItem(state,id);if(!item)return;stashUndo(item.paused?'已恢复滚动':'已暂停滚动');item.paused=!item.paused;if(item.paused)state.tasks=(state.tasks||[]).filter(t=>!(t.type==='rolling'&&t.rollingId===id&&!t.done));else ensureDueTasks(state);write(state);location.reload()}
-function deleteRollingProject(id){const state=read(),item=findItem(state,id);if(!item)return;const done=(item.nodes||[]).filter(n=>n.status==='done').length,records=(state.records||[]).filter(r=>r.rollingId===id).length;if(!confirm(`删除“${item.name}”的滚动计划？\n已完成 ${done} 轮，历史学习记录 ${records} 条将保留。`))return;stashUndo('滚动项目已删除');state.rollingReviews=(state.rollingReviews||[]).filter(r=>r.id!==id);state.tasks=(state.tasks||[]).filter(t=>t.rollingId!==id||t.done);write(state);location.reload()}
+function deleteRollingProject(id){const state=read(),item=findItem(state,id);if(!item)return;stashUndo('滚动项目已删除');state.rollingReviews=(state.rollingReviews||[]).filter(r=>r.id!==id);state.tasks=(state.tasks||[]).filter(t=>t.rollingId!==id||t.done);write(state);sessionStorage.setItem('ux-restore-view','rolling');location.reload()}
 function contextualDeleteTask(id){const state=read(),task=(state?.tasks||[]).find(t=>t.id===id);if(!task)return;if(task.type==='rolling')return toast('滚动任务请在“滚动复习”页完成、顺延或暂停');if(!confirm(`删除“${task.name}”？\n日期：${task.date}${task.done?'\n该任务已完成。':''}`))return;stashUndo('任务已删除');if(state.activeTimer?.taskId===id)state.activeTimer=null;if(task.auto){state.customizedDates=state.customizedDates||{};state.customizedDates[task.date]=true}state.tasks=state.tasks.filter(t=>t.id!==id);write(state);location.reload()}
 
 /* ---------- records / backup ---------- */
@@ -179,6 +179,7 @@ function enhanceTimer(){const state=read(),timer=state?.activeTimer,run=$('#time
 function toggleTimerPause(){const state=read(),timer=state?.activeTimer;if(!timer)return;if(!timer.paused){timer.paused=true;timer.pausedAt=Date.now();timer.uxPauseUsed=true;write(state);enhanceTimer();toast('计时已暂停')}else{const delta=Date.now()-Number(timer.pausedAt||Date.now());timer.startedAt=Number(timer.startedAt)+Math.max(0,delta);delete timer.pausedAt;timer.paused=false;write(state);sessionStorage.setItem('ux-reopen-timer','1');location.reload()}}
 function reopenTimerIfNeeded(){if(sessionStorage.getItem('ux-reopen-timer')!=='1')return;const state=read(),timer=state?.activeTimer;if(!timer){sessionStorage.removeItem('ux-reopen-timer');return}const btn=document.querySelector(`[data-a="start-task"][data-id="${CSS.escape(timer.taskId)}"]`);if(btn){sessionStorage.removeItem('ux-reopen-timer');btn.click()}}
 function openFloatingTimer(){sessionStorage.setItem('ux-reopen-timer','1');$('#nav [data-view="today"]')?.click();setTimeout(reopenTimerIfNeeded,60)}
+function restoreView(){const v=sessionStorage.getItem('ux-restore-view');if(!v)return;sessionStorage.removeItem('ux-restore-view');setTimeout(()=>{$(`#nav [data-view="${v}"]`)?.click();refresh(0)},0)}
 
 /* ---------- lightweight page enhancements ---------- */
 function removeLegacyStudyOption(){const sel=$('#tType');if(!sel)return;sel.querySelector('option[value="study"]')?.remove();if(!sel.value)sel.value='practice'}
@@ -216,9 +217,9 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('change',e=>{if(e.target.id==='rollCatalogCategory'){setContents();syncCustomUI()}else if(e.target.id==='rollPreset')syncCustomUI();else if(e.target.id==='tType')autoTaskName();refresh(20)});
 document.addEventListener('input',e=>{if(e.target.id==='rollCustomVisible')syncCustomUI();if(e.target.id==='tName'&&e.isTrusted)e.target.dataset.uxAuto='0'});
-document.addEventListener('submit',e=>{if(e.target.id==='rollingForm'){syncCustomUI();setTimeout(()=>{const state=read();if(!state)return;const changed=ensureInitialTasks(state)|ensureDueTasks(state);if(changed){write(state);location.reload()}else refresh(0)},30)}else refresh(50)},true);
+document.addEventListener('submit',e=>{if(e.target.id==='rollingForm'){syncCustomUI();setTimeout(()=>refresh(0),30)}else refresh(50)},true);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){syncAfterBaseAction();refresh(0)}});window.addEventListener('pageshow',()=>refresh(0));window.addEventListener('online',()=>refresh(0));window.addEventListener('offline',()=>refresh(0));
 
 // app.js executes immediately after this file. This deferred pass runs after its first render.
-setTimeout(()=>{if(syncPersistentState())location.reload();else refresh(0)},30);
+setTimeout(()=>{if(syncPersistentState())location.reload();else{restoreView();refresh(0)}},30);
 })();
