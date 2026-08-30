@@ -1,0 +1,58 @@
+name: Remove pause undo v42
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/remove-pause-undo-v42.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Remove pause undo and bump runtime
+        shell: python
+        run: |
+          from pathlib import Path
+
+          p=Path('xizong-study/integrated-runtime.js')
+          s=p.read_text(encoding='utf-8')
+          old="const confirmable=String(p.label||'').startsWith('已批量')||p.label==='滚动项目已删除'||p.label==='已暂停滚动';"
+          new="const confirmable=String(p.label||'').startsWith('已批量')||p.label==='滚动项目已删除';"
+          assert old in s, 'confirmable marker missing'
+          s=s.replace(old,new,1)
+          old="if(['滚动项目已删除','已暂停滚动'].includes(p.label))sessionStorage.setItem('ux-restore-view','rolling');"
+          new="if(p.label==='滚动项目已删除')sessionStorage.setItem('ux-restore-view','rolling');"
+          assert old in s, 'undo restore marker missing'
+          s=s.replace(old,new,1)
+          old="function togglePause(id){const state=read(),item=findItem(state,id);if(!item)return;const wasPaused=!!item.paused;if(!wasPaused)stashUndo('已暂停滚动');else sessionStorage.removeItem(UNDO_KEY);item.paused=!wasPaused;if(item.paused)state.tasks=(state.tasks||[]).filter(t=>!(t.type==='rolling'&&t.rollingId===id&&!t.done));else ensureDueTasks(state);write(state);window.__xizongSyncState?.(state);refresh(0)}"
+          new="function togglePause(id){const state=read(),item=findItem(state,id);if(!item)return;item.paused=!item.paused;if(item.paused)state.tasks=(state.tasks||[]).filter(t=>!(t.type==='rolling'&&t.rollingId===id&&!t.done));else ensureDueTasks(state);write(state);window.__xizongSyncState?.(state);refresh(0)}"
+          assert old in s, 'togglePause marker missing'
+          s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('xizong-study/index.html')
+          s=p.read_text(encoding='utf-8').replace('integrated-runtime.js?v=41','integrated-runtime.js?v=42')
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('xizong-study/sw.js')
+          s=p.read_text(encoding='utf-8').replace('xizong-study-v41-20260830','xizong-study-v42-20260830').replace('integrated-runtime.js?v=41','integrated-runtime.js?v=42')
+          p.write_text(s,encoding='utf-8')
+      - name: Validate
+        run: |
+          node --check xizong-study/integrated-runtime.js
+          ! grep -q "已暂停滚动" xizong-study/integrated-runtime.js
+          grep -q "p.label==='滚动项目已删除'" xizong-study/integrated-runtime.js
+          grep -q 'integrated-runtime.js?v=42' xizong-study/index.html
+          grep -q 'xizong-study-v42-20260830' xizong-study/sw.js
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add xizong-study/integrated-runtime.js xizong-study/index.html xizong-study/sw.js
+          git commit -m "Remove pause rolling undo prompt"
+          git push
