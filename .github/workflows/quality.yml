@@ -46,7 +46,6 @@ jobs:
           grep -Fq 'uxEarlyCompletedFrom' xizong-study/integrated-runtime.js
           grep -Fq 'pause-timer' xizong-study/integrated-runtime.js
           grep -Fq 'timer.paused&&timer.pausedAt' xizong-study/app.js
-          grep -Fq '滚动项目已删除' xizong-study/integrated-runtime.js
           grep -Fq '导出学习记录 CSV' xizong-study/integrated-runtime.js
 
       - name: Rolling schedule reflow guards
@@ -79,13 +78,27 @@ jobs:
           ! grep -Fq '<input id="importFile" class="hidden" type="file" accept="application/json">' xizong-study/app.js
           test "$(grep -o 'id="importFile"' xizong-study/index.html | wc -l)" -eq 1
 
+      - name: Removed UI guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'function cleanupLegacyLabels' xizong-study/integrated-runtime.js
+          ! grep -Fq 'UNDO_KEY' xizong-study/integrated-runtime.js
+          ! grep -Fq 'stashUndo(' xizong-study/integrated-runtime.js
+          ! grep -Fq 'showUndo(' xizong-study/integrated-runtime.js
+          ! grep -Fq 'confirm-undo' xizong-study/integrated-runtime.js
+          ! grep -Fq 'ux-undo' xizong-study/styles.css
+          ! grep -Fq 'extraMin=' xizong-study/integrated-runtime.js
+          ! grep -Fq '>额外复习<' xizong-study/integrated-runtime.js
+
       - name: Version and cleanup guards
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq 'integrated-runtime.js?v=46' xizong-study/index.html
+          grep -Fq 'styles.css?v=40' xizong-study/index.html
+          grep -Fq 'integrated-runtime.js?v=47' xizong-study/index.html
           grep -Fq 'app.js?v=46' xizong-study/index.html
-          grep -Fq 'xizong-study-v46-20260830' xizong-study/sw.js
+          grep -Fq 'xizong-study-v47-20260830' xizong-study/sw.js
           test ! -e xizong-study/timer.css
           test ! -e xizong-study/powerups.css
           test ! -e xizong-study/perf-guard.js
