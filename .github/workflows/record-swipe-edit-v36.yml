@@ -1,0 +1,83 @@
+name: Record swipe edit v36
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/record-swipe-edit-v36.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Add swipe edit and delete for recent records
+        shell: python
+        run: |
+          from pathlib import Path
+
+          app=Path('xizong-study/app.js')
+          s=app.read_text(encoding='utf-8')
+
+          old="function recordHTML(r){const isMock=r.type==='mock';const score=isMock?`${r.total||165} 题 · ${r.total?Math.round((r.correct||0)/r.total*100):0}%`:(r.minutes?`${r.minutes} 分钟`:'已完成');const typeName=r.type==='review'?'错题复盘':r.type==='mock'?'套卷':r.type==='rolling'?'滚动复习':'学习';return `<div class=\"record\"><div class=\"rhead\"><div><b>${esc(r.subject||'综合')}${r.year?` · ${r.year}`:''}</b><div class=\"small muted\">${r.date} · ${typeName}${r.minutes?` · ${r.minutes} 分钟`:''}</div></div><span class=\"score\">${score}</span></div>${r.note?`<div style=\"margin-top:7px\">${esc(r.note)}</div>`:''}</div>`}"
+          new="function recordHTML(r){const isMock=r.type==='mock';const score=isMock?`${r.total||165} 题 · ${r.total?Math.round((r.correct||0)/r.total*100):0}%`:(r.minutes?`${r.minutes} 分钟`:'已完成');const typeName=r.type==='review'?'错题复盘':r.type==='mock'?'套卷':r.type==='rolling'?'滚动复习':'学习';return `<div class=\"swipe record-swipe\" data-swipe=\"record-${r.id}\"><div class=\"swipe-actions\"><button class=\"swipe-edit\" data-a=\"edit-record\" data-id=\"${r.id}\">编辑</button><button class=\"swipe-del\" data-a=\"del-record\" data-id=\"${r.id}\">删除</button></div><div class=\"record record-swipe-main\"><div class=\"rhead\"><div><b>${esc(r.subject||'综合')}${r.year?` · ${r.year}`:''}</b><div class=\"small muted\">${r.date} · ${typeName}${r.minutes?` · ${r.minutes} 分钟`:''}</div></div><span class=\"score\">${score}</span></div>${r.note?`<div style=\"margin-top:7px\">${esc(r.note)}</div>`:''}</div></div>`}"
+          assert old in s, 'recordHTML not found'
+          s=s.replace(old,new,1)
+
+          old="function openRecord(id=null,prefillMinutes=null){const t=id?state.tasks.find(x=>x.id===id):null;$('#recordTaskId').value=id||'';const type=t?.type==='mock'?'mock':t?.type==='review'?'review':t?'study':'study';$('#recordTitle').textContent=type==='mock'?'记录套卷':type==='review'?'记录错题复盘':'记录学习';$('#rType').value=type;$('#rType').disabled=!!t;$('#rSubject').innerHTML=[...SUB,'西综','综合'].map(s=>`<option ${t?.subject===s?'selected':''}>${s}</option>`).join('');$('#rYear').value=t?.year||'';$('#rTotal').value=165;$('#rCorrect').value='';$('#rMinutes').value=prefillMinutes??(t?.type==='mock'?(t.minutes||180):'');$('#rNote').value='';syncRecordType();$('#recordDialog').showModal()}"
+          new="function openRecord(id=null,prefillMinutes=null){const t=id?state.tasks.find(x=>x.id===id):null;$('#recordEditId').value='';$('#recordTaskId').value=id||'';const type=t?.type==='mock'?'mock':t?.type==='review'?'review':t?'study':'study';$('#recordTitle').textContent=type==='mock'?'记录套卷':type==='review'?'记录错题复盘':'记录学习';$('#rType').querySelector('option[value=\"rolling\"]')?.remove();$('#rType').value=type;$('#rType').disabled=!!t;$('#rSubject').innerHTML=[...SUB,'西综','综合'].map(s=>`<option ${t?.subject===s?'selected':''}>${s}</option>`).join('');$('#rDate').value=today();$('#rYear').value=t?.year||'';$('#rTotal').value=165;$('#rCorrect').value='';$('#rMinutes').value=prefillMinutes??(t?.type==='mock'?(t.minutes||180):'');$('#rNote').value='';syncRecordType();$('#recordDialog').showModal()}\nfunction openRecordEdit(id){const r=state.records.find(x=>x.id===id);if(!r)return;$('#recordEditId').value=r.id;$('#recordTaskId').value='';let opt=$('#rType').querySelector('option[value=\"rolling\"]');if(r.type==='rolling'&&!opt){opt=document.createElement('option');opt.value='rolling';opt.textContent='滚动复习';$('#rType').appendChild(opt)}$('#rType').value=r.type||'study';$('#rType').disabled=true;const subjects=[...new Set([...SUB,'西综','综合',r.subject||'综合'])];$('#rSubject').innerHTML=subjects.map(s=>`<option ${s===(r.subject||'综合')?'selected':''}>${s}</option>`).join('');$('#rDate').value=r.date||today();$('#rYear').value=r.year||'';$('#rTotal').value=r.total||165;$('#rCorrect').value=r.type==='mock'?(r.correct??''):'';$('#rMinutes').value=Number(r.minutes)||0;$('#rNote').value=r.note||'';$('#recordTitle').textContent='编辑记录';syncRecordType();$('#recordDialog').showModal()}\nfunction deleteRecord(id){const r=state.records.find(x=>x.id===id);if(!r)return;const typeName=r.type==='mock'?'套卷':r.type==='review'?'错题复盘':r.type==='rolling'?'滚动复习':'学习';if(!confirm(`删除这条${typeName}记录？`))return;state.records=state.records.filter(x=>x.id!==id);save();render()}"
+          assert old in s, 'openRecord not found'
+          s=s.replace(old,new,1)
+
+          old="if(a==='record')openRecord(id||null);if(a==='start-task')openTimer(id);"
+          new="if(a==='record')openRecord(id||null);if(a==='edit-record')openRecordEdit(id);if(a==='del-record')deleteRecord(id);if(a==='start-task')openTimer(id);"
+          assert old in s, 'record click routing not found'
+          s=s.replace(old,new,1)
+
+          old="$('#recordForm').addEventListener('submit',e=>{e.preventDefault();const tid=$('#recordTaskId').value,t=tid?state.tasks.find(x=>x.id===tid):null,type=$('#rType').value,minutes=Number($('#rMinutes').value)||0;let total=0,correct=0,year=null;if(type==='mock'){total=165;correct=Number($('#rCorrect').value);year=Number($('#rYear').value)||t?.year||null;if(!Number.isFinite(correct)||correct<0||correct>165)return toast('请输入 0–165 的正确数')}const r={id:uid(),date:today(),type,subject:$('#rSubject').value,year,total,correct,minutes,note:$('#rNote').value.trim(),createdAt:new Date().toISOString()};state.records.push(r);if(t){t.done=true;markMock(t,true)}save();$('#recordDialog').close();$('#rType').disabled=false;render();toast(type==='mock'?`套卷正确率 ${Math.round(correct/165*100)}%`:`已记录${minutes?` ${minutes} 分钟`:''}`)});"
+          new="$('#recordForm').addEventListener('submit',e=>{e.preventDefault();const editId=$('#recordEditId').value,existing=editId?state.records.find(x=>x.id===editId):null,tid=$('#recordTaskId').value,t=tid?state.tasks.find(x=>x.id===tid):null,type=$('#rType').value,minutes=Number($('#rMinutes').value)||0;let total=0,correct=0,year=null;if(type==='mock'){total=165;correct=Number($('#rCorrect').value);year=Number($('#rYear').value)||t?.year||existing?.year||null;if(!Number.isFinite(correct)||correct<0||correct>165)return toast('请输入 0–165 的正确数')}const data={date:$('#rDate').value||today(),type,subject:$('#rSubject').value,year,total,correct,minutes,note:$('#rNote').value.trim()};if(existing){Object.assign(existing,data);if(existing.rollingId&&existing.rollingIndex){const item=state.rollingReviews.find(x=>x.id===existing.rollingId),node=item?.nodes?.find(n=>Number(n.index)===Number(existing.rollingIndex));if(node)node.minutes=minutes}}else{state.records.push({id:uid(),...data,createdAt:new Date().toISOString()});if(t){t.done=true;markMock(t,true)}}save();$('#recordDialog').close();$('#rType').disabled=false;render();if(existing)toast('记录已修改');else toast(type==='mock'?`套卷正确率 ${Math.round(correct/165*100)}%`:`已记录${minutes?` ${minutes} 分钟`:''}`)});"
+          assert old in s, 'record submit block not found'
+          s=s.replace(old,new,1)
+          app.write_text(s,encoding='utf-8')
+
+          idx=Path('xizong-study/index.html')
+          s=idx.read_text(encoding='utf-8')
+          old='<input type="hidden" id="recordTaskId">\n<label>记录类型<select id="rType">'
+          new='<input type="hidden" id="recordTaskId"><input type="hidden" id="recordEditId">\n<label>日期<input id="rDate" type="date" required></label>\n<label>记录类型<select id="rType">'
+          assert old in s, 'record dialog hidden input not found'
+          s=s.replace(old,new,1)
+          s=s.replace('integrated-runtime.js?v=35','integrated-runtime.js?v=36').replace('app.js?v=35','app.js?v=36')
+          idx.write_text(s,encoding='utf-8')
+
+          css=Path('xizong-study/styles.css')
+          s=css.read_text(encoding='utf-8')
+          marker='.swipe.open .task{transform:translateX(-136px)}'
+          addcss='.record-swipe .record-swipe-main{position:relative;z-index:1;background:#fff;transition:transform .18s}.record-swipe.open .record-swipe-main{transform:translateX(-136px)}'
+          assert marker in s, 'swipe task style not found'
+          s=s.replace(marker,marker+addcss,1)
+          css.write_text(s,encoding='utf-8')
+
+          sw=Path('xizong-study/sw.js')
+          s=sw.read_text(encoding='utf-8').replace('xizong-study-v35-20260830','xizong-study-v36-20260830').replace('integrated-runtime.js?v=35','integrated-runtime.js?v=36').replace('app.js?v=35','app.js?v=36').replace('styles.css?v=16','styles.css?v=36')
+          sw.write_text(s,encoding='utf-8')
+
+          s=idx.read_text(encoding='utf-8').replace('styles.css?v=16','styles.css?v=36')
+          idx.write_text(s,encoding='utf-8')
+
+      - name: Validate
+        run: |
+          node --check xizong-study/app.js
+          grep -q 'data-a="edit-record"' xizong-study/app.js
+          grep -q 'data-a="del-record"' xizong-study/app.js
+          grep -q 'recordEditId' xizong-study/index.html
+          grep -q 'record-swipe.open' xizong-study/styles.css
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add xizong-study/app.js xizong-study/index.html xizong-study/styles.css xizong-study/sw.js
+          git commit -m "Add swipe edit and delete for recent records"
+          git push
