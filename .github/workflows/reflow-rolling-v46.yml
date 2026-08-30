@@ -1,0 +1,99 @@
+name: Reflow rolling schedule v46
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/reflow-rolling-v46.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Reflow rolling schedules after delay or early completion
+        shell: python
+        run: |
+          from pathlib import Path
+
+          p=Path('xizong-study/integrated-runtime.js')
+          s=p.read_text(encoding='utf-8')
+
+          marker="function markLinkedTask(state,item,node,done=true){for(const t of state.tasks||[]){if(t.type==='rolling'&&t.rollingId===item.id&&Number(t.rollingIndex)===Number(node.index))t.done=done}}"
+          helpers="""function markLinkedTask(state,item,node,done=true){for(const t of state.tasks||[]){if(t.type==='rolling'&&t.rollingId===item.id&&Number(t.rollingIndex)===Number(node.index))t.done=done}}
+function shiftPendingAfter(item,index,delta){delta=Number(delta)||0;if(!item||!delta)return;for(const n of item.nodes||[]){if(n.status==='pending'&&Number(n.index)>Number(index))n.date=add(n.date,delta)}}
+function shiftPendingFrom(item,index,delta){delta=Number(delta)||0;if(!item||!delta)return;for(const n of item.nodes||[]){if(n.status==='pending'&&Number(n.index)>=Number(index))n.date=add(n.date,delta)}}
+function shiftInitialPlan(item,delta){delta=Number(delta)||0;if(!item||!delta)return;if(item.startDate)item.startDate=add(item.startDate,delta);for(const n of item.nodes||[]){if(n.status==='pending')n.date=add(n.date,delta)}}"""
+          assert marker in s, 'markLinkedTask marker missing'
+          s=s.replace(marker,helpers,1)
+
+          old="function earlyCompleteInitial(taskId){const state=read(),task=(state?.tasks||[]).find(t=>t.id===taskId&&t.type==='rolling'&&t.rollingInitial),item=task?findItem(state,task.rollingId):null;if(!state||!task||!item)return;task.uxEarlyCompletedFrom=task.date;task.date=today();task.done=true;syncLinkedTasks(state);commitState(state)}"
+          new="function earlyCompleteInitial(taskId){const state=read(),task=(state?.tasks||[]).find(t=>t.id===taskId&&t.type==='rolling'&&t.rollingInitial),item=task?findItem(state,task.rollingId):null;if(!state||!task||!item)return;const scheduled=task.date,delta=dayDiff(scheduled,today());task.uxEarlyCompletedFrom=scheduled;task.date=today();task.done=true;shiftInitialPlan(item,delta);syncLinkedTasks(state);commitState(state)}"
+          assert old in s, 'earlyCompleteInitial marker missing'
+          s=s.replace(old,new,1)
+
+          old="function earlyCompleteOne(id,index){const state=read(),item=findItem(state,id),node=findNode(item,index);if(!state||!item||!node)return;const raw=prompt('本次复习用时（分钟，可留空）','');if(raw===null)return;const minutes=Math.max(0,Number(raw)||0);node.status='done';node.completedAt=new Date().toISOString();node.minutes=minutes;rollingRecord(state,item,node,minutes);ensureEarlyCompletedTask(state,item,node);commitState(state)}"
+          new="function earlyCompleteOne(id,index){const state=read(),item=findItem(state,id),node=findNode(item,index);if(!state||!item||!node)return;const raw=prompt('本次复习用时（分钟，可留空）','');if(raw===null)return;const minutes=Math.max(0,Number(raw)||0),scheduled=node.date,delta=dayDiff(scheduled,today());node.status='done';node.completedAt=new Date().toISOString();node.minutes=minutes;shiftPendingAfter(item,node.index,delta);rollingRecord(state,item,node,minutes);ensureEarlyCompletedTask(state,item,node);syncLinkedTasks(state);commitState(state)}"
+          assert old in s, 'earlyCompleteOne marker missing'
+          s=s.replace(old,new,1)
+
+          old="function mutateOne(action,id,index){const state=read(),item=findItem(state,id),node=findNode(item,index);if(!state||!item||!node)return;if(action==='complete'){const raw=prompt('本次复习用时（分钟，可留空）','');if(raw===null){sessionStorage.removeItem(UNDO_KEY);return}const minutes=Math.max(0,Number(raw)||0);node.status='done';node.completedAt=new Date().toISOString();node.minutes=minutes;rollingRecord(state,item,node,minutes);markLinkedTask(state,item,node,true)}else if(action==='delay'){node.uxDelayedFrom=today();node.date=add(node.date,1);state.tasks=(state.tasks||[]).filter(t=>!(t.type==='rolling'&&t.rollingId===id&&Number(t.rollingIndex)===Number(index)&&!t.done))}else{node.status='skipped';node.completedAt=new Date().toISOString();markLinkedTask(state,item,node,true)}commitState(state)}"
+          new="function mutateOne(action,id,index){const state=read(),item=findItem(state,id),node=findNode(item,index);if(!state||!item||!node)return;if(action==='complete'){const raw=prompt('本次复习用时（分钟，可留空）','');if(raw===null){sessionStorage.removeItem(UNDO_KEY);return}const minutes=Math.max(0,Number(raw)||0);node.status='done';node.completedAt=new Date().toISOString();node.minutes=minutes;rollingRecord(state,item,node,minutes);markLinkedTask(state,item,node,true)}else if(action==='delay'){node.uxDelayedFrom=today();shiftPendingFrom(item,node.index,1);syncLinkedTasks(state)}else{node.status='skipped';node.completedAt=new Date().toISOString();markLinkedTask(state,item,node,true)}commitState(state)}"
+          assert old in s, 'mutateOne marker missing'
+          s=s.replace(old,new,1)
+
+          start=s.index('function mutateSelected(kind){')
+          end=s.index('\nfunction togglePause',start)
+          old=s[start:end]
+          new="""function mutateSelected(kind){
+  const picks=selectedDue();if(!picks.length)return toast('先选择要处理的滚动项目');const state=read();if(!state)return;
+  if(kind==='delay'){
+    const byItem=new Map();
+    for(const p of picks){const item=findItem(state,p.id);if(!item)continue;const entry=byItem.get(p.id)||{item,initial:null,indices:[]};if(p.kind==='initial'){entry.initial=(state.tasks||[]).find(t=>t.id===p.taskId)||entry.initial}else entry.indices.push(Number(p.index));byItem.set(p.id,entry)}
+    for(const {item,initial,indices} of byItem.values()){
+      if(initial){initial.uxDelayedFrom=today();initial.date=add(initial.date,1);shiftInitialPlan(item,1);for(const idx of indices){const n=findNode(item,idx);if(n)n.uxDelayedFrom=today()}}
+      else if(indices.length){const first=Math.min(...indices);for(const idx of indices){const n=findNode(item,idx);if(n)n.uxDelayedFrom=today()}shiftPendingFrom(item,first,1)}
+    }
+    syncLinkedTasks(state);commitState(state);return;
+  }
+  for(const p of picks){
+    if(p.kind==='initial'){const task=(state.tasks||[]).find(t=>t.id===p.taskId),item=findItem(state,p.id);if(!task||!item)continue;if(kind==='complete')task.done=true;continue}
+    const item=findItem(state,p.id),node=findNode(item,p.index);if(!item||!node)continue;if(kind==='complete'){node.status='done';node.completedAt=new Date().toISOString();node.minutes=0;rollingRecord(state,item,node,0);markLinkedTask(state,item,node,true)}
+  }
+  syncLinkedTasks(state);commitState(state);
+}"""
+          s=s[:start]+new+s[end:]
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('xizong-study/index.html')
+          s=p.read_text(encoding='utf-8').replace('integrated-runtime.js?v=45','integrated-runtime.js?v=46').replace('app.js?v=45','app.js?v=46')
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('xizong-study/sw.js')
+          s=p.read_text(encoding='utf-8').replace('xizong-study-v45-20260830','xizong-study-v46-20260830').replace('integrated-runtime.js?v=45','integrated-runtime.js?v=46').replace('app.js?v=45','app.js?v=46')
+          p.write_text(s,encoding='utf-8')
+
+      - name: Validate
+        run: |
+          node --check xizong-study/integrated-runtime.js
+          node --check xizong-study/app.js
+          grep -Fq 'function shiftPendingAfter' xizong-study/integrated-runtime.js
+          grep -Fq 'function shiftPendingFrom' xizong-study/integrated-runtime.js
+          grep -Fq 'function shiftInitialPlan' xizong-study/integrated-runtime.js
+          grep -Fq 'shiftPendingFrom(item,node.index,1)' xizong-study/integrated-runtime.js
+          grep -Fq 'shiftPendingAfter(item,node.index,delta)' xizong-study/integrated-runtime.js
+          grep -Fq 'shiftInitialPlan(item,delta)' xizong-study/integrated-runtime.js
+          grep -Fq 'const byItem=new Map()' xizong-study/integrated-runtime.js
+          grep -Fq 'integrated-runtime.js?v=46' xizong-study/index.html
+          grep -Fq 'app.js?v=46' xizong-study/index.html
+          grep -Fq 'xizong-study-v46-20260830' xizong-study/sw.js
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add xizong-study/integrated-runtime.js xizong-study/index.html xizong-study/sw.js
+          git commit -m "Reflow rolling schedules after date changes"
+          git push
