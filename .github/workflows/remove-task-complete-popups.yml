@@ -1,0 +1,68 @@
+name: Apply silent task completion UX
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/remove-task-complete-popups.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Remove completion prompts and undo
+        shell: python
+        run: |
+          from pathlib import Path
+
+          runtime = Path('xizong-study/integrated-runtime.js')
+          text = runtime.read_text(encoding='utf-8')
+          old = "if(['toggle','rolling-complete','rolling-delay','rolling-skip'].includes(a))stashUndo(a==='toggle'?'任务状态已更新':'滚动复习已更新');"
+          new = "if(['rolling-complete','rolling-delay','rolling-skip'].includes(a))stashUndo('滚动复习已更新');"
+          assert old in text, 'task completion undo hook not found'
+          text = text.replace(old, new, 1)
+          old_timer = "  const timer=e.target.closest('[data-timer]')?.dataset.timer;if(['direct','finish'].includes(timer))stashUndo('学习记录已更新');\n"
+          assert old_timer in text, 'timer completion undo hook not found'
+          text = text.replace(old_timer, '', 1)
+          runtime.write_text(text, encoding='utf-8')
+
+          app = Path('xizong-study/app.js')
+          text = app.read_text(encoding='utf-8')
+          old = "render();toast('已完成')}"
+          assert old in text, 'direct completion toast not found'
+          text = text.replace(old, "render()}", 1)
+          old = "save();render();toast(`已记录 ${mins} 分钟`)}}"
+          assert old in text, 'timer finish toast not found'
+          text = text.replace(old, "save();render()}}", 1)
+          app.write_text(text, encoding='utf-8')
+
+          index = Path('xizong-study/index.html')
+          text = index.read_text(encoding='utf-8').replace('integrated-runtime.js?v=27','integrated-runtime.js?v=28').replace('app.js?v=27','app.js?v=28')
+          index.write_text(text, encoding='utf-8')
+
+          sw = Path('xizong-study/sw.js')
+          text = sw.read_text(encoding='utf-8').replace('xizong-study-v27-20260830','xizong-study-v28-20260830').replace('integrated-runtime.js?v=27','integrated-runtime.js?v=28').replace('app.js?v=27','app.js?v=28')
+          sw.write_text(text, encoding='utf-8')
+
+          quality = Path('.github/workflows/quality.yml')
+          text = quality.read_text(encoding='utf-8').replace('integrated-runtime.js?v=27','integrated-runtime.js?v=28').replace('app.js?v=27','app.js?v=28').replace('xizong-study-v27-20260830','xizong-study-v28-20260830')
+          marker = '          ! grep -q "MutationObserver" xizong-study/integrated-runtime.js\n'
+          extra = '          ! grep -q "任务状态已更新" xizong-study/integrated-runtime.js\n          ! grep -q "学习记录已更新" xizong-study/integrated-runtime.js\n          ! grep -q "toast(\'已完成\')" xizong-study/app.js\n'
+          assert marker in text, 'quality marker not found'
+          text = text.replace(marker, marker + extra, 1)
+          quality.write_text(text, encoding='utf-8')
+      - name: Validate JavaScript
+        run: |
+          node --check xizong-study/app.js
+          node --check xizong-study/integrated-runtime.js
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add xizong-study/app.js xizong-study/integrated-runtime.js xizong-study/index.html xizong-study/sw.js .github/workflows/quality.yml
+          git commit -m "Make task completion silent"
+          git push
