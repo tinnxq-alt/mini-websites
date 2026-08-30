@@ -86,9 +86,9 @@ const CATALOG=[
 ['生化','生化','糖代谢Ⅰ：无氧/有氧氧化、磷酸戊糖、糖原、糖异生'],['生化','生化','脂质与能量代谢：氧化磷酸化、胆固醇、胆汁酸、脂肪代谢'],['生化','生化','含氮代谢：氨基酸代谢、核苷酸代谢'],['生化','生化','综合代谢：氨基酸、脂蛋白、蛋白质、生物转化、维生素、胆色素'],['生化','生化','酶与核酸①：酶、核酸、DNA合成'],['生化','生化','核酸②：转录、翻译'],['生化','生化','基因调控：基因表达调控、真核基因、DNA损伤']
 ].map((x,i)=>({id:`preset-${i+1}`,subject:x[0],group:x[1],name:x[2]}));
 const PICKER_GROUPS=[
-{id:'core',label:'1. 病理 + 生理 + 内科',subjects:['病理','生理','内科','综合']},
-{id:'surgery',label:'2. 外科',subjects:['外科']},
-{id:'biochem',label:'3. 生化',subjects:['生化']}
+{id:'core',label:'病理 + 生理 + 内科',subjects:['病理','生理','内科','综合']},
+{id:'surgery',label:'外科',subjects:['外科']},
+{id:'biochem',label:'生化',subjects:['生化']}
 ];
 function categorySubject(){const v=$('#rollCatalogCategory')?.value;return v==='surgery'?'外科':v==='biochem'?'生化':'综合'}
 function setCategories(){const el=$('#rollCatalogCategory');if(!el)return;const current=el.value;el.innerHTML=PICKER_GROUPS.map(g=>`<option value="${g.id}">${g.label}</option>`).join('');if(PICKER_GROUPS.some(g=>g.id===current))el.value=current}
