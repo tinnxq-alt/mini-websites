@@ -42,15 +42,9 @@ jobs:
           grep -q "套卷正确率趋势" xizong-study/integrated-runtime.js
           grep -q "导出学习记录 CSV" xizong-study/integrated-runtime.js
           grep -q "当天学习 · 加入滚动" xizong-study/integrated-runtime.js
-          grep -q "integrated-runtime.js?v=26" xizong-study/index.html
-          grep -q "app.js?v=26" xizong-study/index.html
-          grep -q "xizong-study-v26-20260830" xizong-study/sw.js
-          ! grep -q "perf-guard.js" xizong-study/index.html
-          ! grep -q "rolling-tasks.js" xizong-study/index.html
-          ! grep -q "rolling-picker.js" xizong-study/index.html
-          ! grep -q "rolling-custom.js" xizong-study/index.html
-          ! grep -q "rolling-today-sync.js" xizong-study/index.html
-          ! grep -q "powerups.js" xizong-study/index.html
+          grep -q "integrated-runtime.js?v=27" xizong-study/index.html
+          grep -q "app.js?v=27" xizong-study/index.html
+          grep -q "xizong-study-v27-20260830" xizong-study/sw.js
           ! grep -q "MutationObserver" xizong-study/integrated-runtime.js
           ! grep -q "西综复习（非刷题）" xizong-study/index.html
           ! grep -q "tRollingItem" xizong-study/index.html
@@ -58,3 +52,9 @@ jobs:
           ! grep -q "value=\"rolling\"" xizong-study/index.html
           ! grep -q "默认循环" xizong-study/index.html
           ! grep -q "默认循环" xizong-study/app.js
+          test ! -e xizong-study/perf-guard.js
+          test ! -e xizong-study/rolling-tasks.js
+          test ! -e xizong-study/rolling-picker.js
+          test ! -e xizong-study/rolling-custom.js
+          test ! -e xizong-study/powerups.js
+          test ! -e xizong-study/rolling-today-sync.js
