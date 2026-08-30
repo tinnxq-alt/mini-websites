@@ -31,12 +31,15 @@ jobs:
           grep -q "rollCatalogCategory" xizong-study/index.html
           grep -q "value=\"rolling\"" xizong-study/index.html
           grep -q "tRollingItem" xizong-study/index.html
+          grep -q "完全同步" xizong-study/index.html
           grep -q "病理 + 生理 + 内科" xizong-study/rolling-picker.js
           grep -q "2. 外科" xizong-study/rolling-picker.js
           grep -q "3. 生化" xizong-study/rolling-picker.js
+          grep -q "rollingProjects" xizong-study/rolling-tasks.js
+          grep -q "已完成全部轮次" xizong-study/rolling-tasks.js
           grep -q "syncDueTasks" xizong-study/rolling-tasks.js
           grep -q "syncLinkedTasks" xizong-study/rolling-tasks.js
-          grep -q "xizong-study-v19-20260830" xizong-study/sw.js
+          grep -q "xizong-study-v20-20260830" xizong-study/sw.js
           ! grep -q "rollGroup" xizong-study/index.html
           ! grep -q "data-roll-mode" xizong-study/index.html
           ! grep -q "默认循环" xizong-study/index.html
