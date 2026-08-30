@@ -42,8 +42,9 @@
 
 <dialog id="taskDialog" class="sheet"><form id="taskForm" class="sheetin">
 <div class="handle"></div><div class="sheethead"><h3 id="taskTitle">添加任务</h3><button type="button" id="closeTask" class="iconbtn">×</button></div>
-<input type="hidden" id="taskId"><label>任务名称<input id="tName" required></label><label>日期<input id="tDate" type="date" required></label>
-<label>类型<select id="tType"><option value="practice">学习 / 刷题</option><option value="review">错题复盘</option><option value="mock">套卷</option><option value="study">西综复习（非刷题）</option></select></label>
+<input type="hidden" id="taskId"><label id="tNameWrap">任务名称<input id="tName" required></label><label>日期<input id="tDate" type="date" required></label>
+<label>类型<select id="tType"><option value="practice">学习 / 刷题</option><option value="review">错题复盘</option><option value="rolling">滚动复习</option><option value="mock">套卷</option><option value="study">西综复习（非刷题）</option></select></label>
+<div id="rollingTaskFields" class="hidden"><label>滚动复习项目<select id="tRollingItem"></select></label><div class="small muted" style="margin:-4px 0 10px">选择当前已加入的滚动项目，完成任务后会同步推进对应复习轮次。</div></div>
 <label id="qWrap" class="hidden">套卷题数<input id="tQuestions" type="number" min="1" value="165" inputmode="numeric"></label>
 <button class="btn primary" type="submit">保存任务</button>
 </form></dialog>
@@ -74,6 +75,7 @@
 </div></dialog>
 
 <div id="toast" class="toast"></div><input id="importFile" class="hidden" type="file" accept="application/json,.json">
+<script src="./rolling-tasks.js?v=19"></script>
 <script src="./app.js?v=16"></script>
 <script src="./rolling-picker.js?v=18"></script>
 </body>
