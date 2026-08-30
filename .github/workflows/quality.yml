@@ -25,6 +25,10 @@ jobs:
           grep -q "subject-check" xizong-study/app.js
           grep -q "add-mock" xizong-study/app.js
           grep -q "save-schedule" xizong-study/app.js
+          grep -q 'data-a="edit-record"' xizong-study/app.js
+          grep -q 'data-a="del-record"' xizong-study/app.js
+          grep -q "recordEditId" xizong-study/index.html
+          grep -q "record-swipe.open" xizong-study/styles.css
           grep -q "data-view=\"rolling\"" xizong-study/index.html
           grep -q "rollCatalogCategory" xizong-study/index.html
           grep -q "立即同步到“今日到期”" xizong-study/index.html
@@ -47,11 +51,15 @@ jobs:
           grep -q "rollingInitial:true" xizong-study/app.js
           grep -q "p.label==='滚动项目已删除'" xizong-study/integrated-runtime.js
           grep -q "p.label==='已暂停滚动'" xizong-study/integrated-runtime.js
+          grep -q "if(!wasPaused)stashUndo('已暂停滚动')" xizong-study/integrated-runtime.js
+          grep -q "else sessionStorage.removeItem(UNDO_KEY)" xizong-study/integrated-runtime.js
           grep -q "ux-restore-view" xizong-study/integrated-runtime.js
           grep -q "view=sessionStorage.getItem('ux-restore-view')||'today'" xizong-study/app.js
-          grep -q "integrated-runtime.js?v=35" xizong-study/index.html
-          grep -q "app.js?v=35" xizong-study/index.html
-          grep -q "xizong-study-v35-20260830" xizong-study/sw.js
+          grep -q "styles.css?v=36" xizong-study/index.html
+          grep -q "integrated-runtime.js?v=37" xizong-study/index.html
+          grep -q "app.js?v=36" xizong-study/index.html
+          grep -q "xizong-study-v37-20260830" xizong-study/sw.js
+          ! grep -q "stashUndo(item.paused?'已恢复滚动':'已暂停滚动')" xizong-study/integrated-runtime.js
           ! grep -q "if(syncPersistentState())location.reload()" xizong-study/integrated-runtime.js
           ! grep -q "MutationObserver" xizong-study/integrated-runtime.js
           ! grep -q "任务状态已更新" xizong-study/integrated-runtime.js
