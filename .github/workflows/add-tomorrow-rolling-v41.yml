@@ -14,73 +14,43 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Add collapsible tomorrow rolling plan
+      - name: Implement tomorrow rolling
         shell: python
         run: |
           from pathlib import Path
 
-          rt=Path('xizong-study/integrated-runtime.js')
-          s=rt.read_text(encoding='utf-8')
+          p=Path('xizong-study/integrated-runtime.js')
+          s=p.read_text(encoding='utf-8')
+          def rep(old,new,label):
+              global s
+              if old not in s: raise SystemExit(f'missing: {label}')
+              s=s.replace(old,new,1)
 
-          marker="function dueNodes(state){return (state.rollingReviews||[]).filter(r=>!r.paused).flatMap(item=>(item.nodes||[]).filter(n=>n.status==='pending'&&n.date<=today()).map(node=>({item,node}))).sort((a,b)=>a.node.date.localeCompare(b.node.date))}"
-          insert="""function dueNodes(state){return (state.rollingReviews||[]).filter(r=>!r.paused).flatMap(item=>(item.nodes||[]).filter(n=>n.status==='pending'&&n.date<=today()).map(node=>({item,node}))).sort((a,b)=>a.node.date.localeCompare(b.node.date))}
-function tomorrowDate(){return add(today(),1)}
-function tomorrowInitialTasks(state){const ds=tomorrowDate();return (state.tasks||[]).filter(t=>t.type==='rolling'&&t.rollingInitial&&!t.done&&t.date===ds&&findItem(state,t.rollingId)&&!findItem(state,t.rollingId)?.paused)}
-function tomorrowNodes(state){const ds=tomorrowDate();return (state.rollingReviews||[]).filter(r=>!r.paused).flatMap(item=>(item.nodes||[]).filter(n=>n.status==='pending'&&n.date===ds).map(node=>({item,node}))).sort((a,b)=>a.node.date.localeCompare(b.node.date))}
-function tomorrowInitialRow(state,t){const item=findItem(state,t.rollingId);if(!item)return '';const delayed=t.uxDelayedFrom===today();return `<div class=\"ux-project-row\"><div class=\"ux-grow\"><b>${esc(item.name)}</b><div class=\"small muted\">${esc(item.subject||'综合')} · 当天学习 · ${t.date}</div></div><span class=\"ux-status ${delayed?'today':'future'}\">${delayed?'今日顺延':'明日计划'}</span><button class=\"ux-mini\" data-ux=\"early-complete-initial\" data-task-id=\"${esc(t.id)}\">提前完成</button></div>`}
-function tomorrowNodeRow(item,node){const delayed=node.uxDelayedFrom===today();return `<div class=\"ux-project-row\"><div class=\"ux-grow\"><b>${esc(item.name)}</b><div class=\"small muted\">${esc(item.subject||'综合')} · 第${node.index}轮 · ${node.date}</div></div><span class=\"ux-status ${delayed?'today':'future'}\">${delayed?'今日顺延':'明日计划'}</span><button class=\"ux-mini\" data-ux=\"early-complete-one\" data-id=\"${esc(item.id)}\" data-index=\"${node.index}\">提前完成</button></div>`}"""
-          assert marker in s, 'dueNodes marker missing'
-          s=s.replace(marker,insert,1)
+          old="function dueNodes(state){return (state.rollingReviews||[]).filter(r=>!r.paused).flatMap(item=>(item.nodes||[]).filter(n=>n.status==='pending'&&n.date<=today()).map(node=>({item,node}))).sort((a,b)=>a.node.date.localeCompare(b.node.date))}"
+          new=old+"\nfunction tomorrowDate(){return add(today(),1)}\nfunction tomorrowInitialTasks(state){const ds=tomorrowDate();return (state.tasks||[]).filter(t=>t.type==='rolling'&&t.rollingInitial&&!t.done&&t.date===ds&&findItem(state,t.rollingId)&&!findItem(state,t.rollingId)?.paused)}\nfunction tomorrowNodes(state){const ds=tomorrowDate();return (state.rollingReviews||[]).filter(r=>!r.paused).flatMap(item=>(item.nodes||[]).filter(n=>n.status==='pending'&&n.date===ds).map(node=>({item,node}))).sort((a,b)=>a.node.date.localeCompare(b.node.date))}\nfunction tomorrowInitialRow(state,t){const item=findItem(state,t.rollingId);if(!item)return '';const delayed=t.uxDelayedFrom===today();return `<div class=\"ux-project-row\"><div class=\"ux-grow\"><b>${esc(item.name)}</b><div class=\"small muted\">${esc(item.subject||'综合')} · 当天学习 · ${t.date}</div></div><span class=\"ux-status ${delayed?'today':'future'}\">${delayed?'今日顺延':'明日计划'}</span><button class=\"ux-mini\" data-ux=\"early-complete-initial\" data-task-id=\"${esc(t.id)}\">提前完成</button></div>`}\nfunction tomorrowNodeRow(item,node){const delayed=node.uxDelayedFrom===today();return `<div class=\"ux-project-row\"><div class=\"ux-grow\"><b>${esc(item.name)}</b><div class=\"small muted\">${esc(item.subject||'综合')} · 第${node.index}轮 · ${node.date}</div></div><span class=\"ux-status ${delayed?'today':'future'}\">${delayed?'今日顺延':'明日计划'}</span><button class=\"ux-mini\" data-ux=\"early-complete-one\" data-id=\"${esc(item.id)}\" data-index=\"${node.index}\">提前完成</button></div>`}"
+          rep(old,new,'tomorrow helpers')
 
           old="const initials=pendingInitialTasks(state),nodes=dueNodes(state),all=[...initials.map(t=>({kind:'initial',date:t.date,t})),...nodes.map(x=>({kind:'node',date:x.node.date,...x}))].sort((a,b)=>a.date.localeCompare(b.date)),over=all.filter(x=>x.date<today()),expanded=sessionStorage.getItem('ux-roll-expanded')==='1',shown=expanded?all:all.slice(0,5),extra=(state.records||[]).filter(r=>r.type==='rolling'&&!r.rollingIndex&&String(r.note||'').includes('额外复习')),extraMin=extra.reduce((a,r)=>a+(Number(r.minutes)||0),0);"
           new="const initials=pendingInitialTasks(state),nodes=dueNodes(state),all=[...initials.map(t=>({kind:'initial',date:t.date,t})),...nodes.map(x=>({kind:'node',date:x.node.date,...x}))].sort((a,b)=>a.date.localeCompare(b.date)),over=all.filter(x=>x.date<today()),expanded=sessionStorage.getItem('ux-roll-expanded')==='1',shown=expanded?all:all.slice(0,5),tomorrowInitials=tomorrowInitialTasks(state),tomorrowNodeList=tomorrowNodes(state),tomorrowPlans=[...tomorrowInitials.map(t=>({kind:'initial',date:t.date,t})),...tomorrowNodeList.map(x=>({kind:'node',date:x.node.date,...x}))].sort((a,b)=>a.date.localeCompare(b.date)),tomorrowDelayed=tomorrowPlans.filter(x=>x.kind==='initial'?x.t.uxDelayedFrom===today():x.node.uxDelayedFrom===today()).length,extra=(state.records||[]).filter(r=>r.type==='rolling'&&!r.rollingIndex&&String(r.note||'').includes('额外复习')),extraMin=extra.reduce((a,r)=>a+(Number(r.minutes)||0),0);"
-          assert old in s, 'render variables marker missing'
-          s=s.replace(old,new,1)
+          rep(old,new,'tomorrow data')
 
           old="const stamp=[all.length,over.length,(state.rollingReviews||[]).length,(state.records||[]).length,expanded?1:0,...(state.rollingReviews||[]).map(r=>`${r.id}:${r.paused?1:0}:${(r.nodes||[]).map(n=>`${n.index}${n.status}${n.date}`).join(',')}`)].join('|');"
           new="const stamp=[all.length,over.length,tomorrowPlans.length,tomorrowDelayed,(state.rollingReviews||[]).length,(state.records||[]).length,expanded?1:0,...(state.rollingReviews||[]).map(r=>`${r.id}:${r.paused?1:0}:${(r.nodes||[]).map(n=>`${n.index}${n.status}${n.date}${n.uxDelayedFrom||''}`).join(',')}`),...(state.tasks||[]).filter(t=>t.type==='rolling'&&t.rollingInitial&&!t.done).map(t=>`${t.id}:${t.date}:${t.uxDelayedFrom||''}`)].join('|');"
-          assert old in s, 'stamp marker missing'
-          s=s.replace(old,new,1)
+          rep(old,new,'render stamp')
 
           old="const groups=VIEW_GROUPS.map(([id,label])=>{const items=(state.rollingReviews||[]).filter(r=>groupFor(r)===id).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));return `<details class=\"ux-group\" ${id==='core'?'open':''}><summary>${label}<span>${items.length}</span></summary>${items.length?items.map(item=>projectRow(state,item)).join(''):'<div class=\"empty\">暂无项目</div>'}</details>`}).join('');"
-          new="const groups=VIEW_GROUPS.map(([id,label])=>{const items=(state.rollingReviews||[]).filter(r=>groupFor(r)===id).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));return `<details class=\"ux-group\" ${id==='core'?'open':''}><summary>${label}<span>${items.length}</span></summary>${items.length?items.map(item=>projectRow(state,item)).join(''):'<div class=\"empty\">暂无项目</div>'}</details>`}).join(''),tomorrowHtml=`<details class=\"ux-group ux-tomorrow\"><summary><div><b>明日滚动</b><div class=\"small muted\">明日计划 ${tomorrowPlans.length-tomorrowDelayed} · 今日顺延 ${tomorrowDelayed}</div></div><span>${tomorrowPlans.length}</span></summary>${tomorrowPlans.length?tomorrowPlans.map(x=>x.kind==='initial'?tomorrowInitialRow(state,x.t):tomorrowNodeRow(x.item,x.node)).join(''):'<div class=\"empty\">明天暂无滚动安排</div>'}</details>`;"
-          assert old in s, 'groups marker missing'
-          s=s.replace(old,new,1)
+          new=old[:-1]+",tomorrowHtml=`<details class=\"ux-group ux-tomorrow\"><summary><div><b>明日滚动</b><div class=\"small muted\">明日计划 ${tomorrowPlans.length-tomorrowDelayed} · 今日顺延 ${tomorrowDelayed}</div></div><span>${tomorrowPlans.length}</span></summary>${tomorrowPlans.length?tomorrowPlans.map(x=>x.kind==='initial'?tomorrowInitialRow(state,x.t):tomorrowNodeRow(x.item,x.node)).join(''):'<div class=\"empty\">明天暂无滚动安排</div>'}</details>`;"
+          rep(old,new,'tomorrow block')
 
-          old="</section><div class=\"section\"><h2>滚动项目</h2><span class=\"small muted\">按三大类折叠</span></div>${groups}<button class=\"btn primary\" data-a=\"add-rolling\">＋ 添加滚动复习</button></div>`;"
-          new="</section>${tomorrowHtml}<div class=\"section\"><h2>滚动项目</h2><span class=\"small muted\">按三大类折叠</span></div>${groups}<button class=\"btn primary\" data-a=\"add-rolling\">＋ 添加滚动复习</button></div>`;"
-          assert old in s, 'tomorrow insertion marker missing'
-          s=s.replace(old,new,1)
+          rep("</section><div class=\"section\"><h2>滚动项目</h2><span class=\"small muted\">按三大类折叠</span></div>${groups}<button class=\"btn primary\" data-a=\"add-rolling\">＋ 添加滚动复习</button></div>`;","</section>${tomorrowHtml}<div class=\"section\"><h2>滚动项目</h2><span class=\"small muted\">按三大类折叠</span></div>${groups}<button class=\"btn primary\" data-a=\"add-rolling\">＋ 添加滚动复习</button></div>`;",'insert tomorrow block')
+          rep("else if(action==='delay'){node.date=add(node.date,1);state.tasks=(state.tasks||[]).filter(t=>!(t.type==='rolling'&&t.rollingId===id&&Number(t.rollingIndex)===Number(index)&&!t.done))}","else if(action==='delay'){node.uxDelayedFrom=today();node.date=add(node.date,1);state.tasks=(state.tasks||[]).filter(t=>!(t.type==='rolling'&&t.rollingId===id&&Number(t.rollingIndex)===Number(index)&&!t.done))}",'single delay mark')
+          rep("if(kind==='complete')task.done=true;else if(kind==='delay')task.date=add(task.date,1);else pauseIds.add(item.id);continue","if(kind==='complete')task.done=true;else if(kind==='delay'){task.uxDelayedFrom=today();task.date=add(task.date,1)}else pauseIds.add(item.id);continue",'initial delay mark')
+          rep("else if(kind==='delay'){node.date=add(node.date,1);state.tasks=(state.tasks||[]).filter(t=>!(t.type==='rolling'&&t.rollingId===p.id&&Number(t.rollingIndex)===p.index&&!t.done))}","else if(kind==='delay'){node.uxDelayedFrom=today();node.date=add(node.date,1);state.tasks=(state.tasks||[]).filter(t=>!(t.type==='rolling'&&t.rollingId===p.id&&Number(t.rollingIndex)===p.index&&!t.done))}",'batch delay mark')
+          rep("if(ux==='complete-initial')return completeInitial(uxEl.dataset.taskId);\n    if(ux==='complete-one')return mutateOne('complete',uxEl.dataset.id,uxEl.dataset.index);","if(ux==='complete-initial'||ux==='early-complete-initial')return completeInitial(uxEl.dataset.taskId);\n    if(ux==='complete-one'||ux==='early-complete-one')return mutateOne('complete',uxEl.dataset.id,uxEl.dataset.index);",'early complete handlers')
+          p.write_text(s,encoding='utf-8')
 
-          old="else if(action==='delay'){node.date=add(node.date,1);state.tasks=(state.tasks||[]).filter(t=>!(t.type==='rolling'&&t.rollingId===id&&Number(t.rollingIndex)===Number(index)&&!t.done))}"
-          new="else if(action==='delay'){node.uxDelayedFrom=today();node.date=add(node.date,1);state.tasks=(state.tasks||[]).filter(t=>!(t.type==='rolling'&&t.rollingId===id&&Number(t.rollingIndex)===Number(index)&&!t.done))}"
-          assert old in s, 'single delay marker missing'
-          s=s.replace(old,new,1)
-
-          old="if(kind==='complete')task.done=true;else if(kind==='delay')task.date=add(task.date,1);else pauseIds.add(item.id);continue"
-          new="if(kind==='complete')task.done=true;else if(kind==='delay'){task.uxDelayedFrom=today();task.date=add(task.date,1)}else pauseIds.add(item.id);continue"
-          assert old in s, 'initial batch delay marker missing'
-          s=s.replace(old,new,1)
-
-          old="else if(kind==='delay'){node.date=add(node.date,1);state.tasks=(state.tasks||[]).filter(t=>!(t.type==='rolling'&&t.rollingId===p.id&&Number(t.rollingIndex)===p.index&&!t.done))}"
-          new="else if(kind==='delay'){node.uxDelayedFrom=today();node.date=add(node.date,1);state.tasks=(state.tasks||[]).filter(t=>!(t.type==='rolling'&&t.rollingId===p.id&&Number(t.rollingIndex)===p.index&&!t.done))}"
-          assert old in s, 'node batch delay marker missing'
-          s=s.replace(old,new,1)
-
-          old="if(ux==='complete-initial')return completeInitial(uxEl.dataset.taskId);\n    if(ux==='complete-one')return mutateOne('complete',uxEl.dataset.id,uxEl.dataset.index);"
-          new="if(ux==='complete-initial'||ux==='early-complete-initial')return completeInitial(uxEl.dataset.taskId);\n    if(ux==='complete-one'||ux==='early-complete-one')return mutateOne('complete',uxEl.dataset.id,uxEl.dataset.index);"
-          assert old in s, 'early complete handler marker missing'
-          s=s.replace(old,new,1)
-          rt.write_text(s,encoding='utf-8')
-
-          idx=Path('xizong-study/index.html')
-          s=idx.read_text(encoding='utf-8').replace('integrated-runtime.js?v=40','integrated-runtime.js?v=41')
-          idx.write_text(s,encoding='utf-8')
-
-          sw=Path('xizong-study/sw.js')
-          s=sw.read_text(encoding='utf-8').replace('xizong-study-v40-20260830','xizong-study-v41-20260830').replace('integrated-runtime.js?v=40','integrated-runtime.js?v=41')
-          sw.write_text(s,encoding='utf-8')
-
+          p=Path('xizong-study/index.html');s=p.read_text(encoding='utf-8').replace('integrated-runtime.js?v=40','integrated-runtime.js?v=41');p.write_text(s,encoding='utf-8')
+          p=Path('xizong-study/sw.js');s=p.read_text(encoding='utf-8').replace('xizong-study-v40-20260830','xizong-study-v41-20260830').replace('integrated-runtime.js?v=40','integrated-runtime.js?v=41');p.write_text(s,encoding='utf-8')
       - name: Validate
         run: |
           node --check xizong-study/integrated-runtime.js
@@ -91,7 +61,7 @@ function tomorrowNodeRow(item,node){const delayed=node.uxDelayedFrom===today();r
           grep -q 'uxDelayedFrom=today()' xizong-study/integrated-runtime.js
           grep -q 'integrated-runtime.js?v=41' xizong-study/index.html
           grep -q 'xizong-study-v41-20260830' xizong-study/sw.js
-      - name: Commit changes
+      - name: Commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
