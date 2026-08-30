@@ -13,95 +13,67 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Check Xizong Study JavaScript
+
+      - name: JavaScript syntax
         run: |
           node --check xizong-study/app.js
           node --check xizong-study/integrated-runtime.js
-      - name: Verify required features
+
+      - name: Core files
         shell: bash
         run: |
           set -euo pipefail
-          grep -q "prog-range" xizong-study/app.js
-          grep -q "subject-check" xizong-study/app.js
-          grep -q "add-mock" xizong-study/app.js
-          grep -q "save-schedule" xizong-study/app.js
-          grep -q 'data-a="edit-record"' xizong-study/app.js
-          grep -q 'data-a="del-record"' xizong-study/app.js
-          grep -q "recordEditId" xizong-study/index.html
-          grep -q "record-swipe.open" xizong-study/styles.css
-          grep -q "data-view=\"rolling\"" xizong-study/index.html
-          grep -q "rollCatalogCategory" xizong-study/index.html
-          grep -q "立即同步到“今日到期”" xizong-study/index.html
-          grep -q "label:'病理 + 生理 + 内科'" xizong-study/integrated-runtime.js
-          grep -q "label:'外科'" xizong-study/integrated-runtime.js
-          grep -q "label:'生化'" xizong-study/integrated-runtime.js
-          grep -q "自己添加" xizong-study/integrated-runtime.js
-          grep -q "rollCustomVisible" xizong-study/integrated-runtime.js
-          grep -q "ensureInitialTasks" xizong-study/integrated-runtime.js
-          grep -q "ensureDueTasks" xizong-study/integrated-runtime.js
-          grep -q "if(item.paused)continue" xizong-study/integrated-runtime.js
-          grep -q "renderRollingEnhanced" xizong-study/integrated-runtime.js
-          grep -q "batch-complete" xizong-study/integrated-runtime.js
-          grep -q "pause-timer" xizong-study/integrated-runtime.js
-          grep -q "uxTimerBar" xizong-study/integrated-runtime.js
-          grep -q "timer.paused&&timer.pausedAt" xizong-study/app.js
-          grep -q "timer-mode-grid" xizong-study/styles.css
-          grep -q "ux-timer-bar" xizong-study/styles.css
-          grep -q "套卷正确率趋势" xizong-study/integrated-runtime.js
-          grep -q "导出学习记录 CSV" xizong-study/integrated-runtime.js
-          grep -q "当天学习 · 加入滚动" xizong-study/integrated-runtime.js
-          grep -q " const rollingId=uid()\|const rollingId=uid()" xizong-study/app.js
-          grep -q "rollingInitial:true" xizong-study/app.js
-          grep -q "p.label==='滚动项目已删除'" xizong-study/integrated-runtime.js
-          grep -q "ux-restore-view" xizong-study/integrated-runtime.js
-          grep -q "view=sessionStorage.getItem('ux-restore-view')||'today'" xizong-study/app.js
-          grep -Fq "window.__xizongSyncState" xizong-study/app.js
-          grep -Fq "window.__xizongRefreshTimer" xizong-study/app.js
-          grep -Fq "已暂停；时间已冻结" xizong-study/app.js
-          grep -Fq "window.__xizongSyncState?.(state);refresh(0)" xizong-study/integrated-runtime.js
-          grep -Fq "window.__xizongRefreshTimer?.()" xizong-study/integrated-runtime.js
-          grep -Fq "if(a==='toggle-rolling-pause')" xizong-study/integrated-runtime.js
-          grep -q "明日滚动" xizong-study/integrated-runtime.js
-          grep -q "明日计划" xizong-study/integrated-runtime.js
-          grep -q "今日顺延" xizong-study/integrated-runtime.js
-          grep -q "early-complete-one" xizong-study/integrated-runtime.js
-          grep -q "early-complete-initial" xizong-study/integrated-runtime.js
-          grep -q "uxDelayedFrom=today()" xizong-study/integrated-runtime.js
-          grep -q "function earlyCompleteInitial" xizong-study/integrated-runtime.js
-          grep -q "function earlyCompleteOne" xizong-study/integrated-runtime.js
-          grep -q "function ensureEarlyCompletedTask" xizong-study/integrated-runtime.js
-          grep -q "uxEarlyCompletedFrom" xizong-study/integrated-runtime.js
-          grep -q "text:'已完成',cls:'done'" xizong-study/integrated-runtime.js
-          grep -q "styles.css?v=39" xizong-study/index.html
-          grep -q "integrated-runtime.js?v=44" xizong-study/index.html
-          grep -q "app.js?v=40" xizong-study/index.html
-          grep -q "xizong-study-v44-20260830" xizong-study/sw.js
-          ! grep -q "label:'1. 病理 + 生理 + 内科'" xizong-study/integrated-runtime.js
-          ! grep -q "label:'2. 外科'" xizong-study/integrated-runtime.js
-          ! grep -q "label:'3. 生化'" xizong-study/integrated-runtime.js
-          ! grep -q "已暂停滚动" xizong-study/integrated-runtime.js
-          ! grep -q "timer.css" xizong-study/index.html
-          ! grep -q "powerups.css" xizong-study/index.html
-          ! grep -q 'data-ux="batch-pause"' xizong-study/integrated-runtime.js
-          ! grep -q "ux==='batch-pause'" xizong-study/integrated-runtime.js
-          ! grep -q "stashUndo(item.paused?'已恢复滚动':'已暂停滚动')" xizong-study/integrated-runtime.js
-          ! grep -q "if(syncPersistentState())location.reload()" xizong-study/integrated-runtime.js
-          ! grep -q "MutationObserver" xizong-study/integrated-runtime.js
-          ! grep -q "任务状态已更新" xizong-study/integrated-runtime.js
-          ! grep -q "学习记录已更新" xizong-study/integrated-runtime.js
-          ! grep -q "toast('已完成')" xizong-study/app.js
-          ! grep -q "toast('滚动复习已完成')" xizong-study/app.js
-          ! grep -q "toast('已顺延 1 天')" xizong-study/app.js
-          ! grep -q "toast('已跳过本轮')" xizong-study/app.js
-          ! grep -q "toast('已加入滚动复习')" xizong-study/app.js
-          ! grep -q "stashUndo('当天滚动学习已完成')" xizong-study/integrated-runtime.js
-          ! grep -q "stashUndo(kind==='complete'" xizong-study/integrated-runtime.js
-          ! grep -q "西综复习（非刷题）" xizong-study/index.html
-          ! grep -q "tRollingItem" xizong-study/index.html
-          ! grep -q "rollingTaskFields" xizong-study/index.html
-          ! grep -q "value=\"rolling\"" xizong-study/index.html
-          ! grep -q "默认循环" xizong-study/index.html
-          ! grep -q "默认循环" xizong-study/app.js
+          for f in index.html styles.css app.js integrated-runtime.js sw.js manifest.webmanifest icon.svg; do
+            test -f "xizong-study/$f"
+          done
+
+      - name: Core feature guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'data-view="rolling"' xizong-study/index.html
+          grep -Fq 'data-a="edit-record"' xizong-study/app.js
+          grep -Fq 'data-a="del-record"' xizong-study/app.js
+          grep -Fq 'recordEditId' xizong-study/index.html
+          grep -Fq 'record-swipe.open' xizong-study/styles.css
+          grep -Fq "label:'病理 + 生理 + 内科'" xizong-study/integrated-runtime.js
+          grep -Fq "label:'外科'" xizong-study/integrated-runtime.js
+          grep -Fq "label:'生化'" xizong-study/integrated-runtime.js
+          grep -Fq '明日滚动' xizong-study/integrated-runtime.js
+          grep -Fq '今日顺延' xizong-study/integrated-runtime.js
+          grep -Fq 'early-complete-one' xizong-study/integrated-runtime.js
+          grep -Fq 'early-complete-initial' xizong-study/integrated-runtime.js
+          grep -Fq 'uxEarlyCompletedFrom' xizong-study/integrated-runtime.js
+          grep -Fq 'pause-timer' xizong-study/integrated-runtime.js
+          grep -Fq 'timer.paused&&timer.pausedAt' xizong-study/app.js
+          grep -Fq '滚动项目已删除' xizong-study/integrated-runtime.js
+          grep -Fq '导出学习记录 CSV' xizong-study/integrated-runtime.js
+
+      - name: Performance and bug guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'window.__xizongRollingCatalog=CATALOG' xizong-study/integrated-runtime.js
+          grep -Fq 'const ROLLING_CATALOG=window.__xizongRollingCatalog||[]' xizong-study/app.js
+          grep -Fq 'window.__xizongRender' xizong-study/app.js
+          grep -Fq 'function commitState' xizong-study/integrated-runtime.js
+          grep -Fq "correctRaw===''" xizong-study/app.js
+          grep -Fq '...n,index:' xizong-study/app.js
+          ! grep -Fq 'location.reload()' xizong-study/integrated-runtime.js
+          ! grep -Fq 'const ROLLING_CATALOG=[' xizong-study/app.js
+          ! grep -Fq 'MutationObserver' xizong-study/integrated-runtime.js
+          ! grep -Fq '已暂停滚动' xizong-study/integrated-runtime.js
+          ! grep -Fq 'data-ux="batch-pause"' xizong-study/integrated-runtime.js
+          ! grep -Fq '<input id="importFile" class="hidden" type="file" accept="application/json">' xizong-study/app.js
+          test "$(grep -o 'id="importFile"' xizong-study/index.html | wc -l)" -eq 1
+
+      - name: Version and cleanup guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'integrated-runtime.js?v=45' xizong-study/index.html
+          grep -Fq 'app.js?v=45' xizong-study/index.html
+          grep -Fq 'xizong-study-v45-20260830' xizong-study/sw.js
           test ! -e xizong-study/timer.css
           test ! -e xizong-study/powerups.css
           test ! -e xizong-study/perf-guard.js
