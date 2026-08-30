@@ -47,7 +47,6 @@ function shiftInitialPlan(item,delta){delta=Number(delta)||0;if(!item||!delta)re
 
           start=s.index('function mutateSelected(kind){')
           end=s.index('\nfunction togglePause',start)
-          old=s[start:end]
           new="""function mutateSelected(kind){
   const picks=selectedDue();if(!picks.length)return toast('先选择要处理的滚动项目');const state=read();if(!state)return;
   if(kind==='delay'){
@@ -97,3 +96,5 @@ function shiftInitialPlan(item,delta){delta=Number(delta)||0;if(!item||!delta)re
           git add xizong-study/integrated-runtime.js xizong-study/index.html xizong-study/sw.js
           git commit -m "Reflow rolling schedules after date changes"
           git push
+
+# trigger
