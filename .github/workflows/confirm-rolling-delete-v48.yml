@@ -50,12 +50,6 @@ jobs:
           w = sw.read_text().replace('xizong-study-v47-20260830','xizong-study-v48-20260830').replace('integrated-runtime.js?v=47','integrated-runtime.js?v=48').replace('app.js?v=46','app.js?v=48')
           sw.write_text(w)
 
-          quality = Path('.github/workflows/quality.yml')
-          q = quality.read_text()
-          q = q.replace("          grep -Fq '导出学习记录 CSV' xizong-study/integrated-runtime.js\n", "          grep -Fq '导出学习记录 CSV' xizong-study/integrated-runtime.js\n          grep -Fq '删除这条滚动复习？' xizong-study/integrated-runtime.js\n          grep -Fq '删除这条滚动复习？' xizong-study/app.js\n")
-          q = q.replace("integrated-runtime.js?v=47", "integrated-runtime.js?v=48").replace("app.js?v=46", "app.js?v=48").replace("xizong-study-v47-20260830", "xizong-study-v48-20260830")
-          quality.write_text(q)
-
           subprocess.run(['node','--check','xizong-study/integrated-runtime.js'], check=True)
           subprocess.run(['node','--check','xizong-study/app.js'], check=True)
           assert s.count('删除这条滚动复习？') >= 1
@@ -68,7 +62,7 @@ jobs:
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add xizong-study/integrated-runtime.js xizong-study/app.js xizong-study/index.html xizong-study/sw.js .github/workflows/quality.yml
+          git add xizong-study/integrated-runtime.js xizong-study/app.js xizong-study/index.html xizong-study/sw.js
           git diff --cached --quiet && exit 0
           git commit -m "Confirm all rolling review deletions"
           git push
