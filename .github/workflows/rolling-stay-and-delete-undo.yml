@@ -1,0 +1,79 @@
+name: Rolling stay and delete undo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/rolling-stay-and-delete-undo.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Update rolling add and delete UX
+        shell: python
+        run: |
+          from pathlib import Path
+
+          app=Path('xizong-study/app.js')
+          s=app.read_text(encoding='utf-8')
+          old="state.rollingReviews.push({id:uid(),name,subject,group,source:custom?'custom':'preset',startDate,intervals:[...ROLLING_INTERVALS],nodes:makeRollingNodes(startDate),paused:false,createdAt:new Date().toISOString()});save();$('#rollingDialog').close();render();void 0"
+          new="const rollingId=uid();state.rollingReviews.push({id:rollingId,name,subject,group,source:custom?'custom':'preset',startDate,intervals:[...ROLLING_INTERVALS],nodes:makeRollingNodes(startDate),paused:false,createdAt:new Date().toISOString()});state.tasks.push({id:uid(),date:today(),type:'rolling',name:`滚动复习 · ${name}`,subject,done:false,auto:false,rollingAuto:false,rollingInitial:true,rollingId,order:70});save();$('#rollingDialog').close();render();void 0"
+          assert old in s, 'rolling submit block not found'
+          s=s.replace(old,new,1)
+          app.write_text(s,encoding='utf-8')
+
+          rt=Path('xizong-study/integrated-runtime.js')
+          s=rt.read_text(encoding='utf-8')
+          old="const batch=String(p.label||'').startsWith('已批量');el.innerHTML=`<span>${esc(p.label||'已更新')}</span><button data-ux=\"undo\">撤销</button>${batch?'<button data-ux=\"confirm-undo\">确定</button>':''}`;"
+          new="const confirmable=String(p.label||'').startsWith('已批量')||p.label==='滚动项目已删除';el.innerHTML=`<span>${esc(p.label||'已更新')}</span><button data-ux=\"undo\">撤销</button>${confirmable?'<button data-ux=\"confirm-undo\">确定</button>':''}`;"
+          assert old in s, 'undo prompt block not found'
+          s=s.replace(old,new,1)
+
+          old="function undo(){let p;try{p=JSON.parse(sessionStorage.getItem(UNDO_KEY)||'null')}catch{}if(!p?.state)return;write(p.state);sessionStorage.removeItem(UNDO_KEY);location.reload()}"
+          new="function undo(){let p;try{p=JSON.parse(sessionStorage.getItem(UNDO_KEY)||'null')}catch{}if(!p?.state)return;write(p.state);sessionStorage.removeItem(UNDO_KEY);if(p.label==='滚动项目已删除')sessionStorage.setItem('ux-restore-view','rolling');location.reload()}"
+          assert old in s, 'undo function not found'
+          s=s.replace(old,new,1)
+
+          old="function deleteRollingProject(id){const state=read(),item=findItem(state,id);if(!item)return;const done=(item.nodes||[]).filter(n=>n.status==='done').length,records=(state.records||[]).filter(r=>r.rollingId===id).length;if(!confirm(`删除“${item.name}”的滚动计划？\\n已完成 ${done} 轮，历史学习记录 ${records} 条将保留。`))return;stashUndo('滚动项目已删除');state.rollingReviews=(state.rollingReviews||[]).filter(r=>r.id!==id);state.tasks=(state.tasks||[]).filter(t=>t.rollingId!==id||t.done);write(state);location.reload()}"
+          new="function deleteRollingProject(id){const state=read(),item=findItem(state,id);if(!item)return;stashUndo('滚动项目已删除');state.rollingReviews=(state.rollingReviews||[]).filter(r=>r.id!==id);state.tasks=(state.tasks||[]).filter(t=>t.rollingId!==id||t.done);write(state);sessionStorage.setItem('ux-restore-view','rolling');location.reload()}"
+          assert old in s, 'delete function not found'
+          s=s.replace(old,new,1)
+
+          old="document.addEventListener('submit',e=>{if(e.target.id==='rollingForm'){syncCustomUI();setTimeout(()=>{const state=read();if(!state)return;const changed=ensureInitialTasks(state)|ensureDueTasks(state);if(changed){write(state);location.reload()}else refresh(0)},30)}else refresh(50)},true);"
+          new="document.addEventListener('submit',e=>{if(e.target.id==='rollingForm'){syncCustomUI();setTimeout(()=>refresh(0),30)}else refresh(50)},true);"
+          assert old in s, 'rolling submit enhancement not found'
+          s=s.replace(old,new,1)
+
+          marker="function openFloatingTimer(){sessionStorage.setItem('ux-reopen-timer','1');$('#nav [data-view=\"today\"]')?.click();setTimeout(reopenTimerIfNeeded,60)}\n"
+          insert="function restoreView(){const v=sessionStorage.getItem('ux-restore-view');if(!v)return;sessionStorage.removeItem('ux-restore-view');setTimeout(()=>{$(`#nav [data-view=\"${v}\"]`)?.click();refresh(0)},0)}\n"
+          assert marker in s, 'floating timer marker not found'
+          s=s.replace(marker,marker+insert,1)
+          old="setTimeout(()=>{if(syncPersistentState())location.reload();else refresh(0)},30);"
+          new="setTimeout(()=>{if(syncPersistentState())location.reload();else{restoreView();refresh(0)}},30);"
+          assert old in s, 'startup block not found'
+          s=s.replace(old,new,1)
+          rt.write_text(s,encoding='utf-8')
+
+          p=Path('xizong-study/index.html')
+          s=p.read_text(encoding='utf-8').replace('integrated-runtime.js?v=32','integrated-runtime.js?v=33').replace('app.js?v=32','app.js?v=33')
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('xizong-study/sw.js')
+          s=p.read_text(encoding='utf-8').replace('xizong-study-v32-20260830','xizong-study-v33-20260830').replace('integrated-runtime.js?v=32','integrated-runtime.js?v=33').replace('app.js?v=32','app.js?v=33')
+          p.write_text(s,encoding='utf-8')
+      - name: Validate JavaScript
+        run: |
+          node --check xizong-study/app.js
+          node --check xizong-study/integrated-runtime.js
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add xizong-study/app.js xizong-study/integrated-runtime.js xizong-study/index.html xizong-study/sw.js
+          git commit -m "Keep rolling view and add delete undo confirm"
+          git push
