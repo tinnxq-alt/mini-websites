@@ -76,3 +76,5 @@ jobs:
           path: 西综作战室.apk
           if-no-files-found: error
           retention-days: 14
+
+# Build marker: v48 rolling delete confirmations
