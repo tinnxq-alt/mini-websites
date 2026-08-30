@@ -1,0 +1,25 @@
+name: Kick tomorrow rolling v41
+
+on:
+  workflow_run:
+    workflows: ["Deploy mini websites to GitHub Pages"]
+    types: [completed]
+
+permissions:
+  contents: write
+
+jobs:
+  kick:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Trigger implementation once
+        run: |
+          echo '# triggered' >> .github/workflows/add-tomorrow-rolling-v41.yml
+          git rm .github/workflows/kick-tomorrow-v41.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/add-tomorrow-rolling-v41.yml
+          git commit -m "Trigger tomorrow rolling implementation"
+          git push
