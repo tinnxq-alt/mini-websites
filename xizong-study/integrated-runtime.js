@@ -192,8 +192,7 @@ document.addEventListener('click',e=>{
   const aEl=e.target.closest('[data-a]'),a=aEl?.dataset.a,id=aEl?.dataset.id;
   if(a==='del-task'){e.preventDefault();e.stopImmediatePropagation();contextualDeleteTask(id);return}
   if(a==='rolling-delete'){e.preventDefault();e.stopImmediatePropagation();deleteRollingProject(id);return}
-  if(['toggle','rolling-complete','rolling-delay','rolling-skip'].includes(a))stashUndo(a==='toggle'?'任务状态已更新':'滚动复习已更新');
-  const timer=e.target.closest('[data-timer]')?.dataset.timer;if(['direct','finish'].includes(timer))stashUndo('学习记录已更新');
+  if(['rolling-complete','rolling-delay','rolling-skip'].includes(a))stashUndo('滚动复习已更新');
 },true);
 
 document.addEventListener('click',e=>{
