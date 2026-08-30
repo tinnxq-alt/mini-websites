@@ -45,10 +45,12 @@ jobs:
           grep -q "const rollingId=uid()" xizong-study/app.js
           grep -q "rollingInitial:true" xizong-study/app.js
           grep -q "p.label==='滚动项目已删除'" xizong-study/integrated-runtime.js
+          grep -q "p.label==='已暂停滚动'" xizong-study/integrated-runtime.js
           grep -q "ux-restore-view" xizong-study/integrated-runtime.js
-          grep -q "integrated-runtime.js?v=33" xizong-study/index.html
-          grep -q "app.js?v=33" xizong-study/index.html
-          grep -q "xizong-study-v33-20260830" xizong-study/sw.js
+          grep -q "view=sessionStorage.getItem('ux-restore-view')||'today'" xizong-study/app.js
+          grep -q "integrated-runtime.js?v=34" xizong-study/index.html
+          grep -q "app.js?v=34" xizong-study/index.html
+          grep -q "xizong-study-v34-20260830" xizong-study/sw.js
           ! grep -q "MutationObserver" xizong-study/integrated-runtime.js
           ! grep -q "任务状态已更新" xizong-study/integrated-runtime.js
           ! grep -q "学习记录已更新" xizong-study/integrated-runtime.js
