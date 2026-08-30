@@ -9,8 +9,8 @@
 <meta name="apple-mobile-web-app-title" content="西综作战室">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icon.svg">
-<link rel="stylesheet" href="./styles.css?v=15">
-<link rel="stylesheet" href="./timer.css?v=15">
+<link rel="stylesheet" href="./styles.css?v=16">
+<link rel="stylesheet" href="./timer.css?v=16">
 <title>西综作战室</title>
 </head>
 <body>
@@ -22,7 +22,7 @@
 <button data-view="today" class="active"><span>⌂</span><small>今日</small></button>
 <button data-view="plan"><span>▦</span><small>计划</small></button>
 <button data-view="records"><span>✓</span><small>记录</small></button>
-<button data-view="review"><span>↺</span><small>复盘</small></button>
+<button data-view="rolling"><span>↻</span><small>滚动复习</small></button>
 <button data-view="me"><span>☰</span><small>我的</small></button>
 </nav>
 
@@ -48,6 +48,17 @@
 <button class="btn primary" type="submit">保存任务</button>
 </form></dialog>
 
+
+<dialog id="rollingDialog" class="sheet"><form id="rollingForm" class="sheetin">
+<div class="handle"></div><div class="sheethead"><div><div class="small muted">间隔复习</div><h3>添加滚动复习</h3></div><button type="button" id="closeRolling" class="iconbtn">×</button></div>
+<label>从预置章节选择<select id="rollPreset"></select></label>
+<div class="small muted" style="text-align:center;margin:-4px 0 10px">或</div>
+<label>自定义内容<input id="rollCustomName" placeholder="例如：呼吸系统薄弱专题"></label>
+<label>自定义所属学科<select id="rollSubject"></select></label>
+<label>学习完成日期<input id="rollStart" type="date" required></label>
+<div class="callout">加入后按 1 / 3 / 7 / 15 / 30 天自动生成复习节点。每个人从自己的完成日期开始，不统一推送进度。</div>
+<button class="btn primary" type="submit">加入滚动复习</button>
+</form></dialog>
 <dialog id="timerDialog" class="sheet"><div class="sheetin">
 <div class="handle"></div><div class="sheethead"><div><div class="small muted">学习计时</div><h3 id="timerTitle">开始学习</h3></div><button type="button" id="closeTimer" class="iconbtn">×</button></div>
 <div id="timerChoose">
@@ -63,6 +74,6 @@
 </div></dialog>
 
 <div id="toast" class="toast"></div><input id="importFile" class="hidden" type="file" accept="application/json,.json">
-<script src="./app.js?v=15"></script>
+<script src="./app.js?v=16"></script>
 </body>
 </html>
