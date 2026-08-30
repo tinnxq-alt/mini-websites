@@ -36,7 +36,7 @@ jobs:
           s = re.sub(r"/\* ---------- operations / undo ---------- \*/\nfunction stashUndo\(label\).*?function completeInitial", "/* ---------- operations ---------- */\nfunction completeInitial", s, flags=re.S)
           s = s.replace("function deleteRollingProject(id){const state=read(),item=findItem(state,id);if(!item)return;stashUndo('滚动项目已删除');", "function deleteRollingProject(id){const state=read(),item=findItem(state,id);if(!item)return;")
           s = s.replace("stashUndo('任务已删除');", "")
-          s = s.replace("if(raw===null){sessionStorage.removeItem(UNDO_KEY);return}", "if(raw===null)return")
+          s = s.replace("if(raw===null){sessionStorage.removeItem(UNDO_KEY);return}", "if(raw===null)return;")
           s = s.replace(";showUndo()}),delay)", ";}),delay)")
           s = s.replace("    if(ux==='undo')return undo();\n    if(ux==='confirm-undo'){sessionStorage.removeItem(UNDO_KEY);const el=$('#uxUndo');el?.classList.remove('show');return}\n", "")
           for bad in ['UNDO_KEY','stashUndo(','showUndo(','confirm-undo','uxUndo','extraMin=','>额外复习<',":'额外复习'"]:
