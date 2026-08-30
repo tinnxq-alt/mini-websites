@@ -49,6 +49,7 @@ function syncLinkedTasks(state){
 function ensureInitialTasks(state){
   if(!state||!Array.isArray(state.rollingReviews))return false;state.tasks=Array.isArray(state.tasks)?state.tasks:[];let changed=false;
   for(const item of state.rollingReviews){
+    if(item.paused)continue;
     if(state.tasks.some(t=>t.type==='rolling'&&t.rollingId===item.id&&t.rollingInitial))continue;
     state.tasks.push({id:uid('rolltask'),date:today(),type:'rolling',name:`滚动复习 · ${item.name}`,subject:item.subject||'综合',done:false,auto:false,rollingAuto:false,rollingInitial:true,rollingId:item.id,order:70});changed=true;
   }
@@ -221,5 +222,5 @@ document.addEventListener('submit',e=>{if(e.target.id==='rollingForm'){syncCusto
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){syncAfterBaseAction();refresh(0)}});window.addEventListener('pageshow',()=>refresh(0));window.addEventListener('online',()=>refresh(0));window.addEventListener('offline',()=>refresh(0));
 
 // app.js executes immediately after this file. This deferred pass runs after its first render.
-setTimeout(()=>{if(syncPersistentState())location.reload();else{restoreView();refresh(0)}},30);
+setTimeout(()=>{restoreView();refresh(0)},30);
 })();
