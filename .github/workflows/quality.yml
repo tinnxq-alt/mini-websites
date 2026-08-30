@@ -47,6 +47,8 @@ jobs:
           grep -Fq 'pause-timer' xizong-study/integrated-runtime.js
           grep -Fq 'timer.paused&&timer.pausedAt' xizong-study/app.js
           grep -Fq '导出学习记录 CSV' xizong-study/integrated-runtime.js
+          grep -Fq '删除这条滚动复习？' xizong-study/integrated-runtime.js
+          grep -Fq '删除这条滚动复习？' xizong-study/app.js
 
       - name: Rolling schedule reflow guards
         shell: bash
@@ -96,9 +98,9 @@ jobs:
         run: |
           set -euo pipefail
           grep -Fq 'styles.css?v=40' xizong-study/index.html
-          grep -Fq 'integrated-runtime.js?v=47' xizong-study/index.html
-          grep -Fq 'app.js?v=46' xizong-study/index.html
-          grep -Fq 'xizong-study-v47-20260830' xizong-study/sw.js
+          grep -Fq 'integrated-runtime.js?v=48' xizong-study/index.html
+          grep -Fq 'app.js?v=48' xizong-study/index.html
+          grep -Fq 'xizong-study-v48-20260830' xizong-study/sw.js
           test ! -e xizong-study/timer.css
           test ! -e xizong-study/powerups.css
           test ! -e xizong-study/perf-guard.js
