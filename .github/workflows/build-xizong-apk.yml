@@ -1,0 +1,78 @@
+name: Build Xizong Android APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - xizong-study/**
+      - .github/workflows/build-xizong-apk.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Prepare Capacitor Android wrapper
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .apk-build
+          mkdir -p .apk-build/www
+          cp -R xizong-study/. .apk-build/www/
+          cd .apk-build
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest
+          cat > capacitor.config.json <<'EOF'
+          {
+            "appId": "com.tinnxq.xizongstudy",
+            "appName": "西综作战室",
+            "webDir": "www",
+            "bundledWebRuntime": false,
+            "server": {
+              "androidScheme": "https"
+            }
+          }
+          EOF
+          npx cap add android
+          npx cap sync android
+
+      - name: Build installable debug APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd .apk-build/android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+          test -f app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Package APK
+        shell: bash
+        run: |
+          cp .apk-build/android/app/build/outputs/apk/debug/app-debug.apk 西综作战室.apk
+          ls -lh 西综作战室.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: xizong-study-android-apk
+          path: 西综作战室.apk
+          if-no-files-found: error
+          retention-days: 14
