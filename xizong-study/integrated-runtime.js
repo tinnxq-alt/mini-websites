@@ -181,7 +181,7 @@ function mutateSelected(kind){
   syncLinkedTasks(state);commitState(state);
 }
 function togglePause(id){const state=read(),item=findItem(state,id);if(!item)return;item.paused=!item.paused;if(item.paused)state.tasks=(state.tasks||[]).filter(t=>!(t.type==='rolling'&&t.rollingId===id&&!t.done));else ensureDueTasks(state);write(state);window.__xizongSyncState?.(state);refresh(0)}
-function deleteRollingProject(id){const state=read(),item=findItem(state,id);if(!item)return;state.rollingReviews=(state.rollingReviews||[]).filter(r=>r.id!==id);state.tasks=(state.tasks||[]).filter(t=>t.rollingId!==id||t.done);commitState(state)}
+function deleteRollingProject(id){const state=read(),item=findItem(state,id);if(!item)return;if(!confirm(`删除这条滚动复习？\n${item.name}`))return;state.rollingReviews=(state.rollingReviews||[]).filter(r=>r.id!==id);state.tasks=(state.tasks||[]).filter(t=>t.rollingId!==id||t.done);commitState(state)}
 function contextualDeleteTask(id){const state=read(),task=(state?.tasks||[]).find(t=>t.id===id);if(!task)return;if(task.type==='rolling')return toast('滚动任务请在“滚动复习”页完成、顺延或暂停');if(!confirm(`删除“${task.name}”？\n日期：${task.date}${task.done?'\n该任务已完成。':''}`))return;if(state.activeTimer?.taskId===id)state.activeTimer=null;if(task.auto){state.customizedDates=state.customizedDates||{};state.customizedDates[task.date]=true}state.tasks=state.tasks.filter(t=>t.id!==id);commitState(state)}
 
 /* ---------- records / backup ---------- */
