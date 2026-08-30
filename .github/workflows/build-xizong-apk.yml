@@ -34,10 +34,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf .apk-build
-          mkdir -p .apk-build/www
-          cp -R xizong-study/. .apk-build/www/
-          cd .apk-build
+          rm -rf apk-build
+          mkdir -p apk-build/www
+          cp -R xizong-study/. apk-build/www/
+          cd apk-build
           npm init -y >/dev/null
           npm install --no-audit --no-fund @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest
           cat > capacitor.config.json <<'EOF'
@@ -58,7 +58,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cd .apk-build/android
+          cd apk-build/android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
           test -f app/build/outputs/apk/debug/app-debug.apk
@@ -66,7 +66,7 @@ jobs:
       - name: Package APK
         shell: bash
         run: |
-          cp .apk-build/android/app/build/outputs/apk/debug/app-debug.apk 西综作战室.apk
+          cp apk-build/android/app/build/outputs/apk/debug/app-debug.apk 西综作战室.apk
           ls -lh 西综作战室.apk
 
       - name: Upload APK
