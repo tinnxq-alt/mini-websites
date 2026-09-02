@@ -6,10 +6,10 @@
   state.schedule.cycle=Array.isArray(state.schedule.cycle)&&state.schedule.cycle.length?state.schedule.cycle:['日','夜','出','休'];
   state.schedule.anchorShift=state.schedule.anchorShift||state.schedule.cycle[1]||state.schedule.cycle[0]||'日';
   if(!state.schedule.overrides||typeof state.schedule.overrides!=='object') state.schedule.overrides={};
-  state.version=Math.max(Number(state.version)||0,5);
+  state.version=Math.max(Number(state.version)||0,6);
 
   const style=document.createElement('style');
-  style.textContent='.project-footer{flex-wrap:wrap}.project-footer button{min-width:92px}.danger-btn{border:1px solid #d8b8b0;background:#f5e7e3;color:#9a6258;border-radius:14px;font-weight:700;padding:10px 13px}.row-actions{display:flex;align-items:center;gap:8px}.schedule-edit-btn{border:1px solid var(--line);background:#f8f0e5;color:var(--accent-dark);border-radius:999px;padding:8px 11px;font-size:12px;font-weight:700}';
+  style.textContent='.project-footer{flex-wrap:wrap}.project-footer button{min-width:92px}.danger-btn{border:1px solid #d8b8b0;background:#f5e7e3;color:#9a6258;border-radius:14px;font-weight:700;padding:10px 13px}.row-actions{display:flex;align-items:center;gap:8px}.schedule-edit-btn{border:1px solid var(--line);background:#f8f0e5;color:var(--accent-dark);border-radius:999px;padding:8px 11px;font-size:12px;font-weight:700}.task-swipe{position:relative;overflow:hidden;border-radius:var(--radius);touch-action:pan-y}.task-swipe-actions{position:absolute;inset:0 0 0 auto;width:144px;display:grid;grid-template-columns:72px 72px;z-index:0}.task-swipe-actions button{border:0;font-size:13px;font-weight:800}.swipe-edit{background:#e8dfd2;color:var(--accent-dark)}.swipe-delete{background:#c98578;color:#fff}.task-swipe-content{position:relative;z-index:1;margin:0;transition:transform .2s ease;will-change:transform}.task-swipe.dragging .task-swipe-content{transition:none}.task-swipe.open .task-swipe-content{transform:translateX(-144px)}';
   document.head.appendChild(style);
 
   const scheduleConfig=()=>state.schedule||defaultSchedule;
@@ -17,7 +17,7 @@
   subjectSlotFor=function(dateStr){let count=0,d=parseDate(scheduleConfig().anchor),target=parseDate(dateStr);while(d<=target){const ds=fmtDate(d),sh=shiftFor(ds);if(['日','夜','出'].includes(sh)){if(ds===dateStr)break;count++;}d.setDate(d.getDate()+1);}return{subject:PATCH_PLAN.subjectOrder[Math.floor(count/3)%PATCH_PLAN.subjectOrder.length],part:(count%3)+1};};
   scheduleDescriptor=function(dateStr){const shift=shiftFor(dateStr);if(isMockDay(dateStr)){const year=PATCH_PLAN.mockStart+mockIndexForDate(dateStr);return{shift,kind:'mock',year,headline:`套卷日 · ${year} 西综真题`,note:'完整限时模拟 + 套卷复盘；今天不推送普通刷题。'};}if(shift==='休')return{shift,kind:'review',headline:'恢复日 · 集中复盘',note:'本周错题集中复盘 + 薄弱点整理，不安排新的 00–16 真题批次。'};const slot=subjectSlotFor(dateStr);const intensity=shift==='夜'?'轻量':shift==='出'?'中量':'标准';return{shift,kind:'subject',...slot,headline:`${slot.subject} · 2000–2016 真题 第 ${slot.part}/3 批`,note:`${shift}班学习 · ${intensity}强度；主任务后做短时错题复盘。`};};
 
-  function regenerateFutureAutoTasks(){const project=activeProject();if(!project||project.autoPlan!=='xizong')return;const today=todayStr();state.tasks=state.tasks.filter(t=>!(t.projectId===project.id&&t.auto&&!t.completed&&(!t.actualDate||t.actualDate>=today)));ensureScheduleTasks();}
+  function regenerateFutureAutoTasks(){const project=activeProject();if(!project||project.autoPlan!=='xizong')return;const today=todayStr();state.tasks=state.tasks.filter(t=>!(t.projectId===project.id&&t.auto&&!t.manualEdited&&!t.completed&&(!t.actualDate||t.actualDate>=today)));ensureScheduleTasks();}
 
   deleteProject=function(id){const p=state.projects.find(x=>x.id===id);if(!p)return;const taskCount=state.tasks.filter(t=>t.projectId===id).length,focusCount=state.focusSessions.filter(x=>x.projectId===id).length,paperCount=state.papers.filter(x=>x.projectId===id).length;if(!confirm(`确认删除学习项目“${p.title}”？\n\n将同时删除：${taskCount} 个任务、${focusCount} 条专注记录、${paperCount} 条套卷记录。此操作无法撤销。`))return;state.projects=state.projects.filter(x=>x.id!==id);state.tasks=state.tasks.filter(x=>x.projectId!==id);state.focusSessions=state.focusSessions.filter(x=>x.projectId!==id);state.papers=state.papers.filter(x=>x.projectId!==id);delete state.accuracyHistoryByProject[String(id)];if(state.activeTaskId&&!state.tasks.some(t=>t.id===state.activeTaskId))state.activeTaskId=null;if(state.activeProjectId===id){const next=state.projects.find(x=>!x.archived)||state.projects[0]||null;state.activeProjectId=next?.id||null;}ensureScheduleTasks();save();renderAll();toast('学习项目已删除');};
   window.deleteProject=deleteProject;
@@ -28,6 +28,56 @@
   openScheduleModal=function(){const cfg=scheduleConfig(),cycle=(Array.isArray(cfg.cycle)&&cfg.cycle.length?cfg.cycle:defaultSchedule.cycle).slice(0,8);const rows=Object.entries(cfg.overrides||{}).sort(([a],[b])=>a.localeCompare(b)).map(([date,sh])=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)"><span>${esc(date)} · ${esc(sh)}班</span><button type="button" class="danger-btn" style="padding:6px 9px" onclick="removeScheduleOverride('${escAttr(date)}')">删除</button></div>`).join('')||'<p class="muted" style="font-size:12px">暂无临时改班。</p>';$('#modalTitle').textContent='编辑排班';$('#modalBody').innerHTML=`<div class="modal-body"><label>循环锚点日期</label><input id="sAnchor" type="date" value="${escAttr(cfg.anchor)}"><label>锚点当天班次</label><select id="sAnchorShift">${scheduleOptions(cfg.anchorShift)}</select><label>循环顺序</label><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">${cycle.map((v,i)=>`<select class="cycleShift" aria-label="循环第${i+1}天">${scheduleOptions(v)}</select>`).join('')}</div><p class="muted" style="font-size:12px;margin-top:7px">例如：日 → 夜 → 出 → 休。修改后会重排未来自动任务。</p><label>临时改某一天班次（可选）</label><div style="display:grid;grid-template-columns:1.4fr 1fr;gap:8px"><input id="overrideDate" type="date"><select id="overrideShift">${scheduleOptions('休')}</select></div><div style="margin-top:10px">${rows}</div></div>`;$('#modalSaveBtn').onclick=e=>{e.preventDefault();const newCycle=$$('.cycleShift').map(x=>x.value).filter(Boolean);if(!$('#sAnchor').value||!newCycle.length)return toast('请填写排班锚点和循环');cfg.anchor=$('#sAnchor').value;cfg.anchorShift=$('#sAnchorShift').value;cfg.cycle=newCycle;const od=$('#overrideDate').value;if(od)cfg.overrides[od]=$('#overrideShift').value;regenerateFutureAutoTasks();save();renderAll();$('#modal').close();toast('排班已更新，未来任务已重新生成');};$('#modal').showModal();};
   removeScheduleOverride=function(date){if(!state.schedule?.overrides?.[date])return;delete state.schedule.overrides[date];regenerateFutureAutoTasks();save();renderAll();$('#modal').close();openScheduleModal();};
   window.openScheduleModal=openScheduleModal;window.removeScheduleOverride=removeScheduleOverride;
+
+  deleteTask=function(id){
+    const t=state.tasks.find(x=>x.id===id);if(!t)return;
+    if(!confirm(`确认删除任务“${t.title}”？${t.completed?'\n\n该任务已完成，删除后会同时撤回本任务获得的积分。':''}`))return;
+    const reward=t.completed?(Number(t.points)||0):0;
+    if(reward&&state.points<reward){toast('该任务奖励积分已被使用，余额不足，暂时无法删除');return;}
+    if(reward){state.points=Math.max(0,state.points-reward);state.ledger.unshift({text:`删除已完成任务「${t.title}」`,value:-reward,time:'刚刚'});}
+    state.tasks=state.tasks.filter(x=>x.id!==id);
+    if(state.activeTaskId===id)state.activeTaskId=null;
+    save();renderAll();toast(reward?`任务已删除，-${reward}积分`:'任务已删除');
+  };
+  window.deleteTask=deleteTask;
+
+  const baseEditTask=editTask;
+  editTask=function(id){
+    const task=state.tasks.find(x=>x.id===id);if(!task)return;
+    baseEditTask(id);
+    const saveBtn=$('#modalSaveBtn'),baseSave=saveBtn.onclick;
+    saveBtn.onclick=e=>{task.manualEdited=true;baseSave(e);};
+  };
+  window.editTask=editTask;
+
+  renderTaskCard=function(t,home=false){
+    const id=Number(t.id);
+    return `<div class="task-swipe" data-task-id="${id}"><div class="task-swipe-actions"><button class="swipe-edit" type="button" onclick="editTask(${id})">编辑</button><button class="swipe-delete" type="button" onclick="deleteTask(${id})">删除</button></div><article class="task-card task-swipe-content ${t.completed?'completed':''}"><div class="task-top"><div><h4>${esc(t.title)}</h4><div class="task-meta"><span>${esc(t.type)}</span><span>${Number(t.minutes)||0} min</span><span>＋${Number(t.points)||0} 积分</span>${t.auto?'<span class="auto-tag">排班生成</span>':''}${t.manualEdited?'<span class="auto-tag">已调整</span>':''}</div></div></div><div class="task-bottom"><span class="task-progress">${taskProgressText(t)}</span><div class="task-actions-inline">${t.completed?`<button class="task-action done" onclick="toggleTask(${id})">已完成</button>`:`<button class="task-action" onclick="startTask(${id})">开始专注</button><button class="complete-mini" onclick="toggleTask(${id})">完成</button>`}</div></div></article></div>`;
+  };
+
+  let swipeState=null;
+  function closeTaskSwipes(except=null){document.querySelectorAll('.task-swipe.open').forEach(el=>{if(el!==except)el.classList.remove('open');});}
+  document.addEventListener('pointerdown',e=>{
+    const content=e.target.closest('.task-swipe-content');if(!content)return;
+    const wrap=content.closest('.task-swipe');closeTaskSwipes(wrap);
+    swipeState={wrap,content,startX:e.clientX,startY:e.clientY,dx:0,horizontal:false,pointerId:e.pointerId};
+    wrap.classList.add('dragging');
+  });
+  document.addEventListener('pointermove',e=>{
+    if(!swipeState||e.pointerId!==swipeState.pointerId)return;
+    const dx=e.clientX-swipeState.startX,dy=e.clientY-swipeState.startY;
+    if(!swipeState.horizontal){if(Math.abs(dx)<8&&Math.abs(dy)<8)return;if(Math.abs(dy)>Math.abs(dx)){swipeState.wrap.classList.remove('dragging');swipeState=null;return;}swipeState.horizontal=true;}
+    swipeState.dx=Math.max(-144,Math.min(0,dx+(swipeState.wrap.classList.contains('open')?-144:0)));
+    swipeState.content.style.transform=`translateX(${swipeState.dx}px)`;
+  },{passive:true});
+  function finishSwipe(e){
+    if(!swipeState||e.pointerId!==swipeState.pointerId)return;
+    const {wrap,content,dx,horizontal}=swipeState;wrap.classList.remove('dragging');content.style.transform='';
+    if(horizontal&&dx<-48)wrap.classList.add('open');else wrap.classList.remove('open');
+    swipeState=null;
+  }
+  document.addEventListener('pointerup',finishSwipe);document.addEventListener('pointercancel',finishSwipe);
+  document.addEventListener('click',e=>{if(e.target.closest('.task-swipe-actions')){closeTaskSwipes();return;}if(!e.target.closest('.task-swipe'))closeTaskSwipes();});
 
   const titleRow=[...document.querySelectorAll('.section-title-row')].find(x=>x.textContent.includes('排班学习安排'));
   if(titleRow&&!document.getElementById('editScheduleBtn')){const pill=document.getElementById('todayShiftPill');const wrap=document.createElement('div');wrap.className='row-actions';const btn=document.createElement('button');btn.id='editScheduleBtn';btn.className='schedule-edit-btn';btn.textContent='编辑排班';btn.onclick=openScheduleModal;pill.parentNode.insertBefore(wrap,pill);wrap.append(btn,pill);}
