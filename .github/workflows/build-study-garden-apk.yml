@@ -47,6 +47,7 @@ jobs:
               pathlib.Path(name).read_text(encoding='utf-8')
               for name in sorted(glob.glob('study-garden-apk/source.part*.b64'))
           ))
+          print(f'Encoded source length: {len(encoded)}, mod4={len(encoded) % 4}, tail={encoded[-8:]}')
 
           def restore(candidate):
               try:
@@ -57,12 +58,14 @@ jobs:
               return html if b'Study Garden' in html else None
 
           html = restore(encoded)
-          if html is None and len(encoded) % 4 == 1:
-              print(f'Recovering one stray Base64 character from {len(encoded)} data characters...')
-              for i in range(len(encoded)):
-                  html = restore(encoded[:i] + encoded[i + 1:])
+
+          if html is None and len(encoded) % 4 == 2:
+              print('Searching for two adjacent stray Base64 characters...')
+              for i in range(len(encoded) - 1):
+                  candidate = encoded[:i] + encoded[i + 2:]
+                  html = restore(candidate)
                   if html is not None:
-                      print(f'Recovered source by removing stray character at offset {i}')
+                      print(f'Recovered source by removing two stray characters at offsets {i}-{i + 1}')
                       break
 
           if html is None:
