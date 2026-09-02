@@ -70,11 +70,12 @@ jobs:
               raise SystemExit('Could not reconstruct Study Garden source')
 
           text = html.decode('utf-8')
-          text = text.replace('</body>', '<script src="./patch.js"></script><script src="./cleanup.js"></script><script src="./calendar.js"></script></body>')
+          text = text.replace('</body>', '<script src="./patch.js"></script><script src="./cleanup.js"></script><script src="./calendar.js"></script><script src="./progress.js"></script></body>')
           pathlib.Path('_site/study-garden/index.html').write_text(text, encoding='utf-8')
           pathlib.Path('_site/study-garden/patch.js').write_text(pathlib.Path('study-garden-patch.js').read_text(encoding='utf-8'), encoding='utf-8')
           pathlib.Path('_site/study-garden/cleanup.js').write_text(pathlib.Path('study-garden-cleanup.js').read_text(encoding='utf-8'), encoding='utf-8')
           pathlib.Path('_site/study-garden/calendar.js').write_text(pathlib.Path('study-garden-calendar.js').read_text(encoding='utf-8'), encoding='utf-8')
+          pathlib.Path('_site/study-garden/progress.js').write_text(pathlib.Path('study-garden-progress.js').read_text(encoding='utf-8'), encoding='utf-8')
           print('Prepared Study Garden:', len(text), 'chars')
           PY
 
