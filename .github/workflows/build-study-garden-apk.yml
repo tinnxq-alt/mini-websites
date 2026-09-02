@@ -40,10 +40,18 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p apk-build/www
-          cat study-garden-apk/source.part*.b64 | tr -d '\r\n\t ' > /tmp/study-garden.b64
-          base64 -d --ignore-garbage /tmp/study-garden.b64 > /tmp/study-garden.html.gz
-          gzip -t /tmp/study-garden.html.gz
-          gzip -dc /tmp/study-garden.html.gz > apk-build/www/index.html
+          python3 - <<'PY'
+          import base64, glob, gzip, pathlib, re
+          parts = []
+          for name in sorted(glob.glob('study-garden-apk/source.part*.b64')):
+              parts.append(pathlib.Path(name).read_text(encoding='utf-8'))
+          encoded = re.sub(r'\s+', '', ''.join(parts))
+          encoded += '=' * ((4 - len(encoded) % 4) % 4)
+          compressed = base64.b64decode(encoded, validate=False)
+          html = gzip.decompress(compressed)
+          pathlib.Path('apk-build/www/index.html').write_bytes(html)
+          print(f'Restored index.html: {len(html)} bytes')
+          PY
           grep -q 'Study Garden' apk-build/www/index.html
           test -s apk-build/www/index.html
 
