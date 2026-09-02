@@ -6,6 +6,11 @@ on:
     paths:
       - study-garden-apk/**
       - .github/workflows/build-study-garden-apk.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - study-garden-apk/**
+      - .github/workflows/build-study-garden-apk.yml
   workflow_dispatch:
 
 permissions:
