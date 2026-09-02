@@ -1,0 +1,143 @@
+function clone(o){return JSON.parse(JSON.stringify(o))}
+function localDay(d=new Date()){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function weekKey(d=new Date()){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());const day=(x.getDay()+6)%7;x.setDate(x.getDate()-day);return localDay(x)}
+function normalize(raw){
+ const b=clone(DEFAULT),s=(raw&&typeof raw==='object')?raw:{},o={...b,...s};
+ ['tasks','rewards','history','redeems','onceCompletions','coreDays'].forEach(k=>o[k]=Array.isArray(s[k])?s[k]:b[k]);
+ ['completions','weeklyCompletions','completionRewards','weeklyCompletionRewards','onceCompletionRewards','bonusesAwarded'].forEach(k=>o[k]=(s[k]&&typeof s[k]==='object')?s[k]:b[k]);
+ o.tasks=o.tasks.map(t=>({...t,type:t.type||'daily',core:!!t.core,active:t.active!==false}));
+ const existingRewardIds=new Set(o.rewards.map(r=>r.id));
+ b.rewards.forEach(r=>{if(!existingRewardIds.has(r.id))o.rewards.push({...r})});
+ o.points=Number(o.points)||0;o.streak=Number(o.streak)||0;o.bestStreak=Number(o.bestStreak)||0;o.bestCoreStreak=Number(o.bestCoreStreak)||0;o.checkedDate=typeof o.checkedDate==='string'?o.checkedDate:'';
+ return o;
+}
+function load(){
+ try{
+  const v3=localStorage.getItem('rewardly-v3');
+  if(v3)return normalize(JSON.parse(v3));
+  const v2=localStorage.getItem('rewardly-v2');
+  if(v2){const old=normalize(JSON.parse(v2));localStorage.setItem('rewardly-v3',JSON.stringify(old));return old}
+ }catch(e){}
+ return clone(DEFAULT);
+}
+function save(){try{localStorage.setItem('rewardly-v3',JSON.stringify(data))}catch(e){toast('保存失败，请先导出备份')}}
+function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function attr(s=''){return esc(s)} function color(c){return COLORS.includes(c)?c:'sage'}
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1700)}
+function log(title,amount,type='earn'){data.history.unshift({id:Date.now()+Math.random(),title,amount,type,time:new Date().toISOString()})}
+function todayList(){return data.completions[localDay()]||[]} function weekList(){return data.weeklyCompletions[weekKey()]||[]}
+function totalDone(){return Object.values(data.completions).reduce((n,a)=>n+a.length,0)+Object.values(data.weeklyCompletions).reduce((n,a)=>n+a.length,0)+data.onceCompletions.length}
+function totalEarned(){return data.history.filter(x=>x.amount>0&&x.type==='earn').reduce((n,x)=>n+x.amount,0)}
+function lifetime(){return data.history.filter(x=>x.amount>0).reduce((n,x)=>n+x.amount,0)}
+function todayGain(){return data.history.filter(x=>x.amount>0&&x.type==='earn'&&localDay(new Date(x.time))===localDay()).reduce((n,x)=>n+x.amount,0)}
+function levelInfo(){const p=Math.max(lifetime(),data.points),i=Math.max(0,LEVELS.findIndex(x=>p>=x.min&&p<=x.max)),lv=LEVELS[i],next=LEVELS[Math.min(i+1,LEVELS.length-1)];let pct=100,hint='已达到最高等级';if(lv.max!==Infinity){pct=Math.round((p-lv.min)/(lv.max-lv.min+1)*100);hint=`距离下一等级还差 ${Math.max(0,next.min-p)} 积分`}return{lv,pct,hint}}
+function isDone(t){
+ if(t.type==='daily')return todayList().includes(t.id);
+ if(t.type==='weekly')return weekList().includes(t.id);
+ return data.onceCompletions.includes(t.id);
+}
+function rewardStore(t){
+ if(t.type==='daily'){const k=localDay();data.completionRewards[k]=data.completionRewards[k]||{};return data.completionRewards[k]}
+ if(t.type==='weekly'){const k=weekKey();data.weeklyCompletionRewards[k]=data.weeklyCompletionRewards[k]||{};return data.weeklyCompletionRewards[k]}
+ return data.onceCompletionRewards;
+}
+function listStore(t){
+ if(t.type==='daily'){const k=localDay();data.completions[k]=data.completions[k]||[];return data.completions[k]}
+ if(t.type==='weekly'){const k=weekKey();data.weeklyCompletions[k]=data.weeklyCompletions[k]||[];return data.weeklyCompletions[k]}
+ return data.onceCompletions;
+}
+function toggleTask(id){
+ const t=data.tasks.find(x=>x.id===id);if(!t)return;const arr=listStore(t),store=rewardStore(t),i=arr.indexOf(id);
+ if(i>=0){const credited=Number(store[id]??t.reward);if(data.points<credited){toast('这部分积分已经使用，暂不能撤销');return}arr.splice(i,1);delete store[id];data.points-=credited;log('撤销任务：'+t.title,-credited,'spend');toast(`已撤销，-${credited} 积分`)}
+ else{arr.push(id);store[id]=t.reward;data.points+=t.reward;log('完成任务：'+t.title,t.reward,'earn');toast(`完成，+${t.reward} 积分`)}
+ evaluateBonuses();renderAll();
+}
+function dailyCheckin(){
+ const k=localDay();if(data.checkedDate===k){toast('今天已经签到过了');return}
+ const y=new Date();y.setDate(y.getDate()-1);data.streak=data.checkedDate===localDay(y)?data.streak+1:1;data.bestStreak=Math.max(data.bestStreak,data.streak);data.checkedDate=k;data.points+=10;log('每日签到',10,'earn');toast('签到成功，+10 积分');renderAll();
+}
+function coreTasks(){return data.tasks.filter(t=>t.active&&t.type==='daily'&&t.core)}
+function markCoreDay(){
+ const c=coreTasks();if(!c.length)return false;const done=todayList();if(c.every(t=>done.includes(t.id))){const k=localDay();if(!data.coreDays.includes(k))data.coreDays.push(k);return true}return false;
+}
+function coreStreak(){
+ const set=new Set(data.coreDays),d=new Date();let n=0;
+ if(!set.has(localDay(d))){d.setDate(d.getDate()-1)}
+ while(set.has(localDay(d))){n++;d.setDate(d.getDate()-1)}
+ return n;
+}
+function weekDates(){
+ const start=new Date();const day=(start.getDay()+6)%7;start.setHours(0,0,0,0);start.setDate(start.getDate()-day);
+ return Array.from({length:7},(_,i)=>{const d=new Date(start);d.setDate(d.getDate()+i);return localDay(d)})
+}
+function weeklyCoreRate(){
+ const ids=coreTasks().map(t=>t.id);if(!ids.length)return 0;const dates=weekDates();let num=0,den=ids.length*7;
+ for(const k of dates){const a=data.completions[k]||[];num+=ids.filter(id=>a.includes(id)).length}
+ return Math.round(num/den*100);
+}
+function awardBonus(key,title,pts){
+ if(data.bonusesAwarded[key])return false;data.bonusesAwarded[key]=true;data.points+=pts;log(title,pts,'earn');return true
+}
+function evaluateBonuses(){
+ markCoreDay();const s=coreStreak();data.bestCoreStreak=Math.max(data.bestCoreStreak,s);const k=localDay();
+ [[3,10],[7,25],[14,40],[30,100]].forEach(([days,pts])=>{if(s===days)awardBonus(`streak-${days}-${k}`,`核心任务连续 ${days} 天奖励`,pts)});
+ const rate=weeklyCoreRate();if(rate>=80)awardBonus(`weekly80-${weekKey()}`,'本周核心任务完成率 ≥80%',30);
+}
+function renderAll(){
+ evaluateBonuses();
+ document.getElementById('dateText').textContent=new Date().toLocaleDateString('zh-CN',{month:'long',day:'numeric',weekday:'long'});
+ document.getElementById('points').textContent=data.points;document.getElementById('streakText').textContent=`🔥 签到 ${data.streak} 天`;
+ document.getElementById('todayGain').textContent='+'+todayGain();document.getElementById('todayDone').textContent=todayList().length;document.getElementById('redeemCount').textContent=data.redeems.length;
+ const L=levelInfo();document.getElementById('levelText').textContent=L.lv.name;document.getElementById('levelTitle').textContent=L.lv.name;document.getElementById('levelHint').textContent=L.hint;document.getElementById('levelPct').textContent=L.pct+'%';document.getElementById('levelBar').style.width=L.pct+'%';
+ const s=coreStreak(),r=weeklyCoreRate();document.getElementById('coreStreakText').textContent=`核心任务连击 ${s} 天`;document.getElementById('weeklyRateText').textContent='本周核心任务完成率';document.getElementById('weeklyRatePct').textContent=r+'%';document.getElementById('weeklyRateBar').style.width=Math.min(100,r)+'%';
+ renderHomeTasks();renderHomeRewards();renderTasksPage();renderRewardsPage();renderProfile();renderHistory();save();
+}
+function renderHomeTasks(){
+ const box=document.getElementById('homeTasks');const list=data.tasks.filter(t=>t.active&&t.type==='daily');
+ box.innerHTML=list.length?list.map(taskHTML).join(''):'<div class="card empty">今天没有启用中的每日任务。</div>';
+}
+function taskHTML(t){return `<div class="task ${isDone(t)?'done':''}" onclick="toggleTask(${t.id})"><div class="task-icon ${color(t.color)}">${esc(t.icon)}</div><div><h3>${esc(t.title)}</h3><p>${t.core?'<span class="type-tag">核心</span>':''}${esc(t.desc||'')}</p></div><div class="reward">+${t.reward}</div></div>`}
+function renderHomeRewards(){const list=data.rewards.filter(r=>r.active).slice(0,4);document.getElementById('homeRewards').innerHTML=list.map(shopHTML).join('')}
+function shopHTML(r){return `<div class="shop-item"><div class="shop-icon ${color(r.color)}">${esc(r.icon)}</div><h3>${esc(r.title)}</h3><p>${esc(r.desc||'')}</p><div class="shop-bottom"><strong>${r.cost} 积分</strong><button onclick="openRedeem(${r.id})">兑换</button></div></div>`}
+function switchPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===id));document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));window.scrollTo({top:0,behavior:'smooth'});renderAll()}
+function setTaskFilter(f,el){currentFilter=f;document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));el.classList.add('active');renderTasksPage()}
+function renderTasksPage(){
+ const box=document.getElementById('taskManageList');if(!box)return;const q=(document.getElementById('taskSearch')?.value||'').trim().toLowerCase();let list=data.tasks.filter(t=>(t.title+t.desc).toLowerCase().includes(q));
+ if(['daily','weekly','challenge','once'].includes(currentFilter))list=list.filter(t=>t.type===currentFilter);if(currentFilter==='core')list=list.filter(t=>t.core);
+ box.innerHTML=list.length?list.map(t=>`<div class="manage-card"><div class="left"><div class="task-icon ${color(t.color)}">${esc(t.icon)}</div><div><h3>${esc(t.title)}</h3><p>${TYPES[t.type]||'每日'} · ${t.reward} 分${t.core?' · 核心':''} · ${isDone(t)?'已完成':'未完成'}</p></div></div><div class="actions"><button class="iconbtn" onclick="toggleTask(${t.id})">✓</button><button class="iconbtn" onclick="openTaskForm(${t.id})">✎</button></div></div>`).join(''):'<div class="card empty">没有匹配任务。</div>';
+}
+function openTaskForm(id){
+ const t=id?data.tasks.find(x=>x.id===id):{title:'',desc:'',reward:8,category:'growth',type:'daily',icon:'✨',color:'sage',active:true,core:false};
+ openSheet(`<h3>${id?'编辑任务':'新建任务'}</h3>
+ <div class="form-group"><label>任务名称</label><input id="fTitle" value="${attr(t.title)}" placeholder="例如：完成今日阅读"></div>
+ <div class="form-group"><label>说明</label><textarea id="fDesc">${esc(t.desc||'')}</textarea></div>
+ <div class="two"><div class="form-group"><label>任务类型</label><select id="fType" onchange="suggestPoints()">${Object.entries(TYPES).map(([k,v])=>`<option value="${k}" ${t.type===k?'selected':''}>${v}</option>`).join('')}</select></div><div class="form-group"><label>奖励积分</label><input id="fReward" type="number" min="1" max="100" value="${t.reward}"></div></div>
+ <div class="two"><div class="form-group"><label>图标</label><input id="fIcon" value="${attr(t.icon)}"></div><div class="form-group"><label>莫兰迪色</label><select id="fColor">${COLORS.map(c=>`<option value="${c}" ${t.color===c?'selected':''}>${({sage:'鼠尾草绿',blue:'雾霾蓝',pink:'灰粉',apricot:'杏色',lav:'浅紫'})[c]}</option>`).join('')}</select></div></div>
+ <div class="two"><div class="form-group"><label>核心任务</label><select id="fCore"><option value="false" ${!t.core?'selected':''}>否</option><option value="true" ${t.core?'selected':''}>是</option></select></div><div class="form-group"><label>状态</label><select id="fActive"><option value="true" ${t.active?'selected':''}>启用</option><option value="false" ${!t.active?'selected':''}>停用</option></select></div></div>
+ <p class="small-note">建议：每日 4–10 分；每周 10–25 分；挑战 15–30 分；月度/一次性大目标 20–50 分。核心任务建议每天只保留 2–4 个。</p>
+ <div class="sheet-actions">${id?`<button class="danger" onclick="deleteTask(${id})">删除</button>`:''}<button class="secondary" onclick="closeSheet()">取消</button><button class="confirm" onclick="saveTask(${id||'null'})">保存</button></div>`);
+}
+function suggestPoints(){const e=document.getElementById('fReward'),t=document.getElementById('fType').value;if(!e.dataset.touched)e.value=TYPE_HINT[t]||8}
+function saveTask(id){
+ const title=document.getElementById('fTitle').value.trim();if(!title){toast('请填写任务名称');return}const type=document.getElementById('fType').value;let reward=Math.max(1,Math.min(100,+document.getElementById('fReward').value||TYPE_HINT[type]));
+ const obj={id:id||Date.now(),title,desc:document.getElementById('fDesc').value.trim(),reward,category:'growth',type,icon:document.getElementById('fIcon').value.trim()||'✨',color:document.getElementById('fColor').value,core:document.getElementById('fCore').value==='true',active:document.getElementById('fActive').value==='true'};
+ if(obj.type!=='daily')obj.core=false;if(id){const i=data.tasks.findIndex(x=>x.id===id);data.tasks[i]=obj}else data.tasks.push(obj);closeSheet();toast('任务已保存');renderAll();
+}
+function deleteTask(id){if(!confirm('确定删除任务？历史完成记录会保留。'))return;data.tasks=data.tasks.filter(t=>t.id!==id);closeSheet();toast('任务已删除');renderAll()}
+function renderRewardsPage(){const box=document.getElementById('rewardGrid');if(!box)return;const q=(document.getElementById('rewardSearch')?.value||'').trim().toLowerCase(),list=data.rewards.filter(r=>(r.title+r.desc).toLowerCase().includes(q));box.innerHTML=list.map(r=>`<div class="shop-item"><div class="shop-icon ${color(r.color)}">${esc(r.icon)}</div><h3>${esc(r.title)}</h3><p>${esc(r.desc||'')}</p><div class="shop-bottom"><strong>${r.cost} 积分</strong><div><button onclick="openRewardForm(${r.id})">编辑</button> <button onclick="openRedeem(${r.id})">兑换</button></div></div></div>`).join('')}
+function openRewardForm(id){const r=id?data.rewards.find(x=>x.id===id):{title:'',desc:'',cost:250,icon:'🎁',color:'lav',active:true};openSheet(`<h3>${id?'编辑奖励':'新建奖励'}</h3><div class="form-group"><label>名称</label><input id="rTitle" value="${attr(r.title)}"></div><div class="form-group"><label>说明</label><textarea id="rDesc">${esc(r.desc||'')}</textarea></div><div class="two"><div class="form-group"><label>所需积分</label><input id="rCost" type="number" min="1" value="${r.cost}"></div><div class="form-group"><label>图标</label><input id="rIcon" value="${attr(r.icon)}"></div></div><div class="form-group"><label>颜色</label><select id="rColor">${COLORS.map(c=>`<option value="${c}" ${r.color===c?'selected':''}>${c}</option>`).join('')}</select></div><div class="sheet-actions">${id?`<button class="danger" onclick="deleteReward(${id})">删除</button>`:''}<button class="secondary" onclick="closeSheet()">取消</button><button class="confirm" onclick="saveReward(${id||'null'})">保存</button></div>`)}
+function saveReward(id){const title=document.getElementById('rTitle').value.trim();if(!title){toast('请填写奖励名称');return}const o={id:id||Date.now(),title,desc:document.getElementById('rDesc').value.trim(),cost:Math.max(1,+document.getElementById('rCost').value||1),icon:document.getElementById('rIcon').value.trim()||'🎁',color:document.getElementById('rColor').value,active:true};if(id)data.rewards[data.rewards.findIndex(x=>x.id===id)]=o;else data.rewards.push(o);closeSheet();toast('奖励已保存');renderAll()}
+function deleteReward(id){if(!confirm('确定删除奖励？'))return;data.rewards=data.rewards.filter(r=>r.id!==id);closeSheet();renderAll()}
+function openRedeem(id){const r=data.rewards.find(x=>x.id===id);if(!r)return;openSheet(`<h3>兑换「${esc(r.title)}」</h3><p class="muted">消耗 ${r.cost} 积分。兑换后会永久写入记录。</p><div class="sheet-actions"><button class="secondary" onclick="closeSheet()">取消</button><button class="confirm" onclick="confirmRedeem(${id})">确认兑换</button></div>`)}
+function confirmRedeem(id){const r=data.rewards.find(x=>x.id===id);if(!r)return;if(data.points<r.cost){toast('积分还不够');return}data.points-=r.cost;data.redeems.unshift({id:Date.now(),rewardId:id,title:r.title,cost:r.cost,time:new Date().toISOString()});log('兑换奖励：'+r.title,-r.cost,'spend');closeSheet();toast('兑换成功');renderAll()}
+function renderProfile(){if(!document.getElementById('totalEarned'))return;document.getElementById('totalEarned').textContent=totalEarned();document.getElementById('totalTasksDone').textContent=totalDone();document.getElementById('bestCoreStreak').textContent=data.bestCoreStreak+' 天';document.getElementById('totalRedeems').textContent=data.redeems.length;
+ const chart=document.getElementById('weekChart'),vals=[];let max=1;for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const k=localDay(d),v=data.history.filter(x=>x.amount>0&&x.type==='earn'&&localDay(new Date(x.time))===k).reduce((a,b)=>a+b.amount,0);max=Math.max(max,v);vals.push({d,v})}chart.innerHTML=vals.map(x=>`<div class="day"><div class="col" style="height:${Math.max(6,Math.round(x.v/max*90))}px"></div><label>${['日','一','二','三','四','五','六'][x.d.getDay()]}</label></div>`).join('');
+ const ach=[['🌱','第一步','累计完成 1 个任务',totalDone()>=1,'sage'],['🔥','形成节奏','核心任务最长连击 ≥7 天',data.bestCoreStreak>=7,'pink'],['💯','百次达成','累计完成 100 个任务',totalDone()>=100,'blue'],['🏆','积分达人','累计获得 1000 积分',totalEarned()>=1000,'apricot'],['🎁','会奖励自己','累计兑换 5 次奖励',data.redeems.length>=5,'lav']];
+ document.getElementById('achievements').innerHTML=ach.map(a=>`<div class="card badge" style="${a[3]?'':'opacity:.48'}"><div class="badge-icon ${a[4]}">${a[0]}</div><div><h3>${a[1]}${a[3]?' · 已解锁':''}</h3><p>${a[2]}</p></div></div>`).join('');
+}
+function renderHistory(){const box=document.getElementById('historyList');if(!box)return;box.innerHTML=data.history.length?data.history.map(h=>`<div class="history-item"><div><h4>${esc(h.title)}</h4><p>${new Date(h.time).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</p></div><div class="${h.amount>=0?'plus':'minus'}">${h.amount>=0?'+':''}${h.amount}</div></div>`).join(''):'<div class="empty">暂无积分记录</div>'}
+function openSheet(h){document.getElementById('sheetContent').innerHTML=h;document.getElementById('sheet').classList.add('show')} function closeSheet(){document.getElementById('sheet').classList.remove('show')} document.getElementById('sheet').addEventListener('click',e=>{if(e.target.id==='sheet')closeSheet()})
+function exportData(){const b=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a'),u=URL.createObjectURL(b);a.href=u;a.download=`rewardly-v3-${localDay()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);toast('备份已导出')}
+function importData(input){const f=input.files?.[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const x=normalize(JSON.parse(r.result));if(!confirm('导入会覆盖当前 Rewardly 数据，继续吗？'))return;data=x;save();renderAll();toast('备份已恢复')}catch(e){toast('备份文件格式不正确')}input.value=''};r.readAsText(f)}
+function resetAll(){if(!confirm('确定清除当前数据并恢复默认任务？'))return;data=clone(DEFAULT);save();renderAll();toast('已恢复默认')}
+renderAll();
