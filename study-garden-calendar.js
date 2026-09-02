@@ -22,6 +22,8 @@
   const style=document.createElement('style');
   style.textContent=`
     .bottom-nav{grid-template-columns:repeat(5,1fr)}
+    #newCalendarEventBtn{padding:6px 9px;font-size:11px;border-radius:10px;min-height:0;line-height:1.2}
+    #calendarSelectedShift{font-size:10px;padding:4px 7px;line-height:1;border-radius:999px;display:inline-flex;align-items:center}
     .calendar-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0 14px}
     .calendar-toolbar strong{font-size:18px}
     .calendar-nav-btn{border:1px solid var(--line);background:var(--card);color:var(--accent-dark);border-radius:12px;padding:8px 12px;font-weight:800}
@@ -38,7 +40,7 @@
     .calendar-event-item{display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--line)}.calendar-event-item:first-of-type{border-top:0}
     .calendar-event-time{min-width:46px;font-size:12px;color:var(--accent-dark);font-weight:800}.calendar-event-copy{flex:1;min-width:0}.calendar-event-copy strong{font-size:14px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.calendar-repeat{font-size:10px;color:var(--muted);margin-top:3px;display:block}
     .calendar-mini-actions{display:flex;gap:5px}.calendar-mini-actions button{border:0;background:#eee5d8;color:var(--muted);border-radius:9px;padding:6px 8px;font-size:11px}.calendar-mini-actions .danger{background:#f2dfda;color:#9a6258}
-    @media(max-width:480px){.bottom-nav{padding-left:6px;padding-right:6px}.bottom-nav small{font-size:9px}.calendar-grid,.calendar-weekdays{gap:4px}.calendar-day{min-height:88px;padding:6px 3px;border-radius:12px}.calendar-event-preview{font-size:8.5px}}
+    @media(max-width:480px){.bottom-nav{padding-left:6px;padding-right:6px}.bottom-nav small{font-size:9px}#newCalendarEventBtn{padding:5px 8px;font-size:10px}#calendarSelectedShift{font-size:9px;padding:3px 6px}.calendar-grid,.calendar-weekdays{gap:4px}.calendar-day{min-height:88px;padding:6px 3px;border-radius:12px}.calendar-event-preview{font-size:8.5px}}
   `;
   document.head.appendChild(style);
 
