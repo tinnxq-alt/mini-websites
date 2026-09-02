@@ -78,7 +78,13 @@ jobs:
                       break
           if html is None:
               raise SystemExit('Could not reconstruct Study Garden source')
-          text = html.decode('utf-8').replace('</body>', '<script src="./patch.js"></script><script src="./cleanup.js"></script><script src="./calendar.js"></script><script src="./progress.js"></script></body>')
+          compact_style = '''<style id="calendar-compact-v2">
+          [data-page="calendar"] #newCalendarEventBtn{font-size:9px!important;padding:3px 6px!important;height:24px!important;min-height:24px!important;line-height:1!important;border-radius:8px!important;width:auto!important}
+          [data-page="calendar"] #calendarSelectedShift{font-size:8px!important;padding:2px 5px!important;min-height:16px!important;line-height:1!important;border-radius:999px!important;width:auto!important}
+          [data-page="calendar"] .calendar-shift{font-size:13px!important;line-height:1!important}
+          @media(max-width:480px){[data-page="calendar"] #newCalendarEventBtn{font-size:8.5px!important;padding:3px 5px!important;height:22px!important;min-height:22px!important}[data-page="calendar"] #calendarSelectedShift{font-size:7.5px!important;padding:2px 4px!important}}
+          </style>'''
+          text = html.decode('utf-8').replace('</body>', '<script src="./patch.js"></script><script src="./cleanup.js"></script><script src="./calendar.js"></script><script src="./progress.js"></script>' + compact_style + '</body>')
           pathlib.Path('apk-build/www/index.html').write_text(text, encoding='utf-8')
           pathlib.Path('apk-build/www/patch.js').write_text(pathlib.Path('study-garden-patch.js').read_text(encoding='utf-8'), encoding='utf-8')
           pathlib.Path('apk-build/www/cleanup.js').write_text(pathlib.Path('study-garden-cleanup.js').read_text(encoding='utf-8'), encoding='utf-8')
@@ -91,6 +97,7 @@ jobs:
           grep -q '完整套卷训练' apk-build/www/cleanup.js
           grep -q 'data-page="calendar"' apk-build/www/calendar.js
           grep -q '专注统计' apk-build/www/progress.js
+          grep -q 'calendar-compact-v2' apk-build/www/index.html
           test -s apk-build/www/index.html
 
       - name: Prepare Capacitor Android wrapper
