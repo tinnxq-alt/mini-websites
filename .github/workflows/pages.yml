@@ -32,7 +32,7 @@ jobs:
           rsync -a --exclude '.git' --exclude '_site' ./ _site/
           mkdir -p _site/study-garden
           python3 - <<'PY'
-          import base64, glob, gzip, pathlib, re
+          import base64, glob, gzip, pathlib, re, os
 
           encoded = re.sub(r'\s+', '', ''.join(
               pathlib.Path(name).read_text(encoding='utf-8')
@@ -69,14 +69,21 @@ jobs:
           if html is None:
               raise SystemExit('Could not reconstruct Study Garden source')
 
-          text = html.decode('utf-8')
-          text = text.replace('</body>', '<script src="./patch.js"></script><script src="./cleanup.js"></script><script src="./calendar.js"></script><script src="./progress.js"></script></body>')
+          version = os.environ.get('GITHUB_SHA', 'v2')[:10]
+          compact_style = '''<style id="calendar-compact-v2">
+          [data-page="calendar"] #newCalendarEventBtn{font-size:9px!important;padding:3px 6px!important;height:24px!important;min-height:24px!important;line-height:1!important;border-radius:8px!important;width:auto!important}
+          [data-page="calendar"] #calendarSelectedShift{font-size:8px!important;padding:2px 5px!important;min-height:16px!important;line-height:1!important;border-radius:999px!important;width:auto!important}
+          [data-page="calendar"] .calendar-shift{font-size:13px!important;line-height:1!important}
+          @media(max-width:480px){[data-page="calendar"] #newCalendarEventBtn{font-size:8.5px!important;padding:3px 5px!important;height:22px!important;min-height:22px!important}[data-page="calendar"] #calendarSelectedShift{font-size:7.5px!important;padding:2px 4px!important}}
+          </style>'''
+          scripts = f'<script src="./patch.js?v={version}"></script><script src="./cleanup.js?v={version}"></script><script src="./calendar.js?v={version}"></script><script src="./progress.js?v={version}"></script>{compact_style}'
+          text = html.decode('utf-8').replace('</body>', scripts + '</body>')
           pathlib.Path('_site/study-garden/index.html').write_text(text, encoding='utf-8')
           pathlib.Path('_site/study-garden/patch.js').write_text(pathlib.Path('study-garden-patch.js').read_text(encoding='utf-8'), encoding='utf-8')
           pathlib.Path('_site/study-garden/cleanup.js').write_text(pathlib.Path('study-garden-cleanup.js').read_text(encoding='utf-8'), encoding='utf-8')
           pathlib.Path('_site/study-garden/calendar.js').write_text(pathlib.Path('study-garden-calendar.js').read_text(encoding='utf-8'), encoding='utf-8')
           pathlib.Path('_site/study-garden/progress.js').write_text(pathlib.Path('study-garden-progress.js').read_text(encoding='utf-8'), encoding='utf-8')
-          print('Prepared Study Garden:', len(text), 'chars')
+          print('Prepared Study Garden:', len(text), 'chars', 'version', version)
           PY
 
       - name: Setup Pages
