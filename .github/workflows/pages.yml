@@ -23,12 +23,65 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+
+      - name: Prepare site
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          rsync -a --exclude '.git' --exclude '_site' ./ _site/
+          mkdir -p _site/study-garden
+          python3 - <<'PY'
+          import base64, glob, gzip, pathlib, re
+
+          encoded = re.sub(r'\s+', '', ''.join(
+              pathlib.Path(name).read_text(encoding='utf-8')
+              for name in sorted(glob.glob('study-garden-apk/source.part*.b64'))
+          ))
+
+          def restore(candidate):
+              try:
+                  compressed = base64.b64decode(candidate, validate=True)
+                  html = gzip.decompress(compressed)
+              except Exception:
+                  return None
+              return html if b'Study Garden' in html else None
+
+          html = restore(encoded)
+          if html is None:
+              for remove_count in (1, 2):
+                  found = False
+                  if remove_count == 1:
+                      for i in range(len(encoded)):
+                          html = restore(encoded[:i] + encoded[i+1:])
+                          if html is not None:
+                              found = True
+                              break
+                  else:
+                      for i in range(len(encoded)-1):
+                          html = restore(encoded[:i] + encoded[i+2:])
+                          if html is not None:
+                              found = True
+                              break
+                  if found:
+                      break
+
+          if html is None:
+              raise SystemExit('Could not reconstruct Study Garden source')
+
+          text = html.decode('utf-8')
+          text = text.replace('</body>', '<script src="./patch.js"></script></body>')
+          pathlib.Path('_site/study-garden/index.html').write_text(text, encoding='utf-8')
+          pathlib.Path('_site/study-garden/patch.js').write_text(pathlib.Path('study-garden-patch.js').read_text(encoding='utf-8'), encoding='utf-8')
+          print('Prepared Study Garden:', len(text), 'chars')
+          PY
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload site
         uses: actions/upload-pages-artifact@v4
         with:
-          path: '.'
+          path: '_site'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
