@@ -44,4 +44,3 @@ const DEFAULT={
  completions:{},weeklyCompletions:{},onceCompletions:[],completionRewards:{},weeklyCompletionRewards:{},onceCompletionRewards:{},
  coreDays:[],bonusesAwarded:{},history:[],redeems:[]
 };
-let data=load(),currentFilter='all';
