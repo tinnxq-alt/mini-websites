@@ -1,7 +1,12 @@
 (()=>{
   if(!Array.isArray(state.calendarEvents)) state.calendarEvents=[];
-  state.calendarEvents=state.calendarEvents.map(e=>({...e,repeat:e.repeat||'none',repeatUntil:e.repeatUntil||''}));
-  state.version=Math.max(Number(state.version)||0,10);
+  state.calendarEvents=state.calendarEvents.map(e=>({
+    ...e,
+    repeat:e.repeat||'none',
+    repeatUntil:e.repeatUntil||'',
+    repeatEveryDays:Math.max(1,Number(e.repeatEveryDays)||1)
+  }));
+  state.version=Math.max(Number(state.version)||0,11);
 
   // 首页排班只显示班次，不显示学科/套卷内容。
   renderSchedule=function(){
@@ -40,6 +45,7 @@
     .calendar-event-item{display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--line)}.calendar-event-item:first-of-type{border-top:0}
     .calendar-event-time{min-width:46px;font-size:12px;color:var(--accent-dark);font-weight:800}.calendar-event-copy{flex:1;min-width:0}.calendar-event-copy strong{font-size:14px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.calendar-repeat{font-size:10px;color:var(--muted);margin-top:3px;display:block}
     .calendar-mini-actions{display:flex;gap:5px}.calendar-mini-actions button{border:0;background:#eee5d8;color:var(--muted);border-radius:9px;padding:6px 8px;font-size:11px}.calendar-mini-actions .danger{background:#f2dfda;color:#9a6258}
+    #calRepeatEveryWrap{display:none}
     @media(max-width:480px){.bottom-nav{padding-left:6px;padding-right:6px}.bottom-nav small{font-size:9px}#newCalendarEventBtn{padding:5px 8px;font-size:10px}#calendarSelectedShift{font-size:9px;padding:3px 6px}.calendar-grid,.calendar-weekdays{gap:4px}.calendar-day{min-height:88px;padding:6px 3px;border-radius:12px}.calendar-event-preview{font-size:8.5px}}
   `;
   document.head.appendChild(style);
@@ -47,7 +53,12 @@
   let calendarCursor=new Date();calendarCursor=new Date(calendarCursor.getFullYear(),calendarCursor.getMonth(),1);
   let selectedCalendarDate=todayStr();
   const weekdayLabel=dateStr=>['日','一','二','三','四','五','六'][parseDate(dateStr).getDay()];
-  const repeatLabel=repeat=>({daily:'每天',weekly:'每周',monthly:'每月'}[repeat]||'');
+
+  function repeatLabel(event){
+    const repeat=event.repeat||'none';
+    if(repeat==='interval')return `每${Math.max(1,Number(event.repeatEveryDays)||1)}天`;
+    return ({daily:'每天',weekly:'每周',monthly:'每月'}[repeat]||'');
+  }
 
   function eventOccursOn(event,dateStr){
     const start=event.date;
@@ -58,6 +69,7 @@
     const diff=dayDiff(start,dateStr);
     if(diff<0)return false;
     if(repeat==='daily')return true;
+    if(repeat==='interval')return diff%Math.max(1,Number(event.repeatEveryDays)||1)===0;
     if(repeat==='weekly')return diff%7===0;
     if(repeat==='monthly'){
       const s=parseDate(start),d=parseDate(dateStr);
@@ -88,24 +100,30 @@
     $('#calendarSelectedTitle').textContent=`${selectedCalendarDate} · 周${weekdayLabel(selectedCalendarDate)}`;
     $('#calendarSelectedShift').textContent=`${shiftFor(selectedCalendarDate)}班`;
     $('#calendarEventList').innerHTML=events.length?events.map(e=>{
-      const recurrence=repeatLabel(e.repeat);
+      const recurrence=repeatLabel(e);
       return `<div class="calendar-event-item"><span class="calendar-event-time">${esc(e.time||'日程')}</span><div class="calendar-event-copy"><strong>${esc(e.title)}</strong>${recurrence?`<span class="calendar-repeat">${recurrence}${e.repeatUntil?' · 至 '+esc(e.repeatUntil):''}</span>`:''}</div><div class="calendar-mini-actions"><button type="button" onclick="editCalendarEvent(${Number(e.id)})">编辑</button><button type="button" class="danger" onclick="deleteCalendarEvent(${Number(e.id)})">删除</button></div></div>`;
     }).join(''):'<p class="muted" style="margin:8px 0 0">当天暂无日程。</p>';
   }
 
   function openCalendarEventModal(dateStr,event=null){
     $('#modalTitle').textContent=event?'编辑日程':'添加日程';
-    const repeat=event?.repeat||'none';
-    $('#modalBody').innerHTML=`<div class="modal-body"><label>日期</label><input id="calDate" type="date" value="${escAttr(event?.date||dateStr)}"><label>时间（可选）</label><input id="calTime" type="time" value="${escAttr(event?.time||'')}"><label>日程</label><input id="calTitle" value="${escAttr(event?.title||'')}" placeholder="例如：跳舞 / 复诊 / 聚餐"><label>重复</label><select id="calRepeat"><option value="none">不重复</option><option value="daily">每天</option><option value="weekly">每周</option><option value="monthly">每月</option></select><div id="calRepeatUntilWrap"><label>重复截止（可选）</label><input id="calRepeatUntil" type="date" value="${escAttr(event?.repeatUntil||'')}"></div></div>`;
+    const repeat=event?.repeat||'none',repeatEveryDays=Math.max(1,Number(event?.repeatEveryDays)||2);
+    $('#modalBody').innerHTML=`<div class="modal-body"><label>日期</label><input id="calDate" type="date" value="${escAttr(event?.date||dateStr)}"><label>时间（可选）</label><input id="calTime" type="time" value="${escAttr(event?.time||'')}"><label>日程</label><input id="calTitle" value="${escAttr(event?.title||'')}" placeholder="例如：跳舞 / 复诊 / 聚餐"><label>重复</label><select id="calRepeat"><option value="none">不重复</option><option value="daily">每天</option><option value="interval">每几天</option><option value="weekly">每周</option><option value="monthly">每月</option></select><div id="calRepeatEveryWrap"><label>每几天重复</label><input id="calRepeatEveryDays" type="number" min="2" max="365" step="1" value="${repeatEveryDays}"></div><div id="calRepeatUntilWrap"><label>重复截止（可选）</label><input id="calRepeatUntil" type="date" value="${escAttr(event?.repeatUntil||'')}"></div></div>`;
     $('#calRepeat').value=repeat;
-    const syncRepeatUi=()=>{$('#calRepeatUntilWrap').style.display=$('#calRepeat').value==='none'?'none':'block';};
+    const syncRepeatUi=()=>{
+      const type=$('#calRepeat').value;
+      $('#calRepeatEveryWrap').style.display=type==='interval'?'block':'none';
+      $('#calRepeatUntilWrap').style.display=type==='none'?'none':'block';
+    };
     $('#calRepeat').onchange=syncRepeatUi;syncRepeatUi();
     $('#modalSaveBtn').onclick=e=>{
       e.preventDefault();
       const date=$('#calDate').value,title=$('#calTitle').value.trim(),time=$('#calTime').value,repeat=$('#calRepeat').value,repeatUntil=repeat==='none'?'':$('#calRepeatUntil').value;
+      const repeatEveryDays=repeat==='interval'?Math.round(Number($('#calRepeatEveryDays').value)||0):1;
       if(!date||!title)return toast('请填写日期和日程');
+      if(repeat==='interval'&&(repeatEveryDays<2||repeatEveryDays>365))return toast('重复间隔请填写 2–365 天');
       if(repeatUntil&&repeatUntil<date)return toast('重复截止日期不能早于开始日期');
-      const data={date,title,time,repeat,repeatUntil};
+      const data={date,title,time,repeat,repeatUntil,repeatEveryDays};
       if(event)Object.assign(event,data);else state.calendarEvents.push({id:Date.now(),...data});
       selectedCalendarDate=date;const d=parseDate(date);calendarCursor=new Date(d.getFullYear(),d.getMonth(),1);
       save();renderCalendar();$('#modal').close();toast(event?'日程已更新':'日程已添加');
