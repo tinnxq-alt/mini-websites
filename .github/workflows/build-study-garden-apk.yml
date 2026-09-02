@@ -8,6 +8,7 @@ on:
       - study-garden-patch.js
       - study-garden-cleanup.js
       - study-garden-calendar.js
+      - study-garden-progress.js
       - .github/workflows/build-study-garden-apk.yml
   pull_request:
     branches: [main]
@@ -16,6 +17,7 @@ on:
       - study-garden-patch.js
       - study-garden-cleanup.js
       - study-garden-calendar.js
+      - study-garden-progress.js
       - .github/workflows/build-study-garden-apk.yml
   workflow_dispatch:
 
@@ -76,17 +78,19 @@ jobs:
                       break
           if html is None:
               raise SystemExit('Could not reconstruct Study Garden source')
-          text = html.decode('utf-8').replace('</body>', '<script src="./patch.js"></script><script src="./cleanup.js"></script><script src="./calendar.js"></script></body>')
+          text = html.decode('utf-8').replace('</body>', '<script src="./patch.js"></script><script src="./cleanup.js"></script><script src="./calendar.js"></script><script src="./progress.js"></script></body>')
           pathlib.Path('apk-build/www/index.html').write_text(text, encoding='utf-8')
           pathlib.Path('apk-build/www/patch.js').write_text(pathlib.Path('study-garden-patch.js').read_text(encoding='utf-8'), encoding='utf-8')
           pathlib.Path('apk-build/www/cleanup.js').write_text(pathlib.Path('study-garden-cleanup.js').read_text(encoding='utf-8'), encoding='utf-8')
           pathlib.Path('apk-build/www/calendar.js').write_text(pathlib.Path('study-garden-calendar.js').read_text(encoding='utf-8'), encoding='utf-8')
+          pathlib.Path('apk-build/www/progress.js').write_text(pathlib.Path('study-garden-progress.js').read_text(encoding='utf-8'), encoding='utf-8')
           print(f'Restored Study Garden: {len(text)} chars')
           PY
           grep -q 'Study Garden' apk-build/www/index.html
           grep -q 'deleteProject' apk-build/www/patch.js
           grep -q '完整套卷训练' apk-build/www/cleanup.js
           grep -q 'data-page="calendar"' apk-build/www/calendar.js
+          grep -q '专注统计' apk-build/www/progress.js
           test -s apk-build/www/index.html
 
       - name: Prepare Capacitor Android wrapper
