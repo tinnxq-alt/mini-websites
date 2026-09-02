@@ -42,13 +42,32 @@ jobs:
           mkdir -p apk-build/www
           python3 - <<'PY'
           import base64, glob, gzip, pathlib, re
-          parts = []
-          for name in sorted(glob.glob('study-garden-apk/source.part*.b64')):
-              parts.append(pathlib.Path(name).read_text(encoding='utf-8'))
-          encoded = re.sub(r'\s+', '', ''.join(parts))
-          encoded += '=' * ((4 - len(encoded) % 4) % 4)
-          compressed = base64.b64decode(encoded, validate=False)
-          html = gzip.decompress(compressed)
+
+          encoded = re.sub(r'\s+', '', ''.join(
+              pathlib.Path(name).read_text(encoding='utf-8')
+              for name in sorted(glob.glob('study-garden-apk/source.part*.b64'))
+          ))
+
+          def restore(candidate):
+              try:
+                  compressed = base64.b64decode(candidate, validate=True)
+                  html = gzip.decompress(compressed)
+              except Exception:
+                  return None
+              return html if b'Study Garden' in html else None
+
+          html = restore(encoded)
+          if html is None and len(encoded) % 4 == 1:
+              print(f'Recovering one stray Base64 character from {len(encoded)} data characters...')
+              for i in range(len(encoded)):
+                  html = restore(encoded[:i] + encoded[i + 1:])
+                  if html is not None:
+                      print(f'Recovered source by removing stray character at offset {i}')
+                      break
+
+          if html is None:
+              raise SystemExit('Could not reconstruct Study Garden source')
+
           pathlib.Path('apk-build/www/index.html').write_bytes(html)
           print(f'Restored index.html: {len(html)} bytes')
           PY
