@@ -1,0 +1,87 @@
+name: Build Study Garden Android APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - study-garden-apk/**
+      - .github/workflows/build-study-garden-apk.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Restore Study Garden web app
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p apk-build/www
+          cat study-garden-apk/source.part*.b64 > /tmp/study-garden.b64
+          base64 -d /tmp/study-garden.b64 > /tmp/study-garden.html.gz
+          gzip -dc /tmp/study-garden.html.gz > apk-build/www/index.html
+          grep -q 'Study Garden' apk-build/www/index.html
+          test -s apk-build/www/index.html
+
+      - name: Prepare Capacitor Android wrapper
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd apk-build
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest
+          cat > capacitor.config.json <<'EOF'
+          {
+            "appId": "com.tinnxq.studygarden",
+            "appName": "学习花园",
+            "webDir": "www",
+            "bundledWebRuntime": false,
+            "server": {
+              "androidScheme": "https"
+            }
+          }
+          EOF
+          npx cap add android
+          npx cap sync android
+
+      - name: Build installable APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd apk-build/android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+          test -f app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Package APK
+        shell: bash
+        run: |
+          cp apk-build/android/app/build/outputs/apk/debug/app-debug.apk '学习花园.apk'
+          sha256sum '学习花园.apk'
+          ls -lh '学习花园.apk'
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: study-garden-android-apk
+          path: 学习花园.apk
+          if-no-files-found: error
+          retention-days: 30
