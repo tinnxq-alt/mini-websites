@@ -71,5 +71,75 @@
   };
   window.renderRewards=renderRewards;
 
+  // Make project editing persist reliably and keep project action buttons compact.
+  const projectStyle=document.createElement('style');
+  projectStyle.textContent=`
+    .project-footer{gap:6px!important}
+    .project-footer button{
+      min-width:74px!important;
+      padding:9px 11px!important;
+      border-radius:11px!important;
+      font-size:12px!important;
+      line-height:1.15!important
+    }
+    @media(max-width:480px){
+      .project-footer button{
+        min-width:68px!important;
+        padding:8px 10px!important;
+        font-size:11px!important
+      }
+    }
+  `;
+  document.head.appendChild(projectStyle);
+
+  openProjectModal=function(project=null){
+    $('#modalTitle').textContent=project?'编辑学习项目':'新建学习项目';
+    $('#modalBody').innerHTML=`<div class="modal-body"><label>项目名称</label><input id="pTitle" value="${escAttr(project?.title||'')}" placeholder="例如：主治医师考试"><label>最终目标</label><input id="pGoal" value="${escAttr(project?.goal||'')}" placeholder="例如：通过考试 / 目标分数"><label>考试 / 目标日期（可选）</label><input id="pExamDate" type="date" value="${escAttr(project?.examDate||'')}"><label>每日任务计划</label><select id="pAutoPlan"><option value="xizong">西综 · 按日夜出休自动排班</option><option value="manual">手动安排</option></select><label>项目完成积分（巨额奖励）</label><input id="pRewardPoints" type="number" min="0" step="10" value="${Number(project?.rewardPoints??10000)}"><label>现实奖励（可选）</label><input id="pRewardText" value="${escAttr(project?.rewardText||'')}" placeholder="例如：一次旅行 / 买想要的东西"><label>当前项目进度 %</label><input id="pProgress" type="number" min="0" max="100" value="${Number(project?.progress)||0}"></div>`;
+    $('#pAutoPlan').value=project?.autoPlan||'manual';
+
+    const saveBtn=$('#modalSaveBtn');
+    saveBtn.type='button';
+    saveBtn.textContent=project?'保存修改':'创建项目';
+    saveBtn.onclick=()=>{
+      const title=$('#pTitle').value.trim();
+      if(!title)return toast('先填写项目名称');
+      const data={
+        title,
+        goal:$('#pGoal').value.trim(),
+        examDate:$('#pExamDate').value||null,
+        autoPlan:$('#pAutoPlan').value,
+        rewardPoints:Math.max(0,Math.round(Number($('#pRewardPoints').value)||0)),
+        rewardText:$('#pRewardText').value.trim(),
+        progress:Math.max(0,Math.min(100,Number($('#pProgress').value)||0))
+      };
+
+      if(project){
+        Object.assign(project,data);
+      }else{
+        const item={id:Date.now(),baselineAccuracy:null,rewardClaimed:false,archived:false,...data};
+        state.projects.push(item);
+        state.activeProjectId=item.id;
+      }
+
+      // Persist first, then refresh generated tasks; a scheduling error must never lose the edit.
+      save();
+      try{ ensureScheduleTasks(); }catch(err){ console.error('ensureScheduleTasks failed after project save',err); }
+      save();
+      renderAll();
+      $('#modal').close();
+      toast(project?'项目修改已保存':'项目已创建并设为当前');
+    };
+    $('#modal').showModal();
+  };
+  window.openProjectModal=openProjectModal;
+
+  editProject=function(id){
+    const project=state.projects.find(x=>x.id===id);
+    if(!project)return;
+    openProjectModal(project);
+  };
+  window.editProject=editProject;
+
+  state.version=Math.max(Number(state.version)||0,14);
   save();renderAll();
 })();
