@@ -76,13 +76,14 @@ jobs:
           [data-page="calendar"] .calendar-shift{font-size:13px!important;line-height:1!important}
           @media(max-width:480px){[data-page="calendar"] #newCalendarEventBtn{font-size:8.5px!important;padding:3px 5px!important;height:22px!important;min-height:22px!important}[data-page="calendar"] #calendarSelectedShift{font-size:7.5px!important;padding:2px 4px!important}}
           </style>'''
-          scripts = f'<script src="./patch.js?v={version}"></script><script src="./cleanup.js?v={version}"></script><script src="./calendar.js?v={version}"></script><script src="./progress.js?v={version}"></script>{compact_style}'
+          scripts = f'<script src="./patch.js?v={version}"></script><script src="./cleanup.js?v={version}"></script><script src="./calendar.js?v={version}"></script><script src="./progress.js?v={version}"></script><script src="./points-fix.js?v={version}"></script>{compact_style}'
           text = html.decode('utf-8').replace('</body>', scripts + '</body>')
           pathlib.Path('_site/study-garden/index.html').write_text(text, encoding='utf-8')
           pathlib.Path('_site/study-garden/patch.js').write_text(pathlib.Path('study-garden-patch.js').read_text(encoding='utf-8'), encoding='utf-8')
           pathlib.Path('_site/study-garden/cleanup.js').write_text(pathlib.Path('study-garden-cleanup.js').read_text(encoding='utf-8'), encoding='utf-8')
           pathlib.Path('_site/study-garden/calendar.js').write_text(pathlib.Path('study-garden-calendar.js').read_text(encoding='utf-8'), encoding='utf-8')
           pathlib.Path('_site/study-garden/progress.js').write_text(pathlib.Path('study-garden-progress.js').read_text(encoding='utf-8'), encoding='utf-8')
+          pathlib.Path('_site/study-garden/points-fix.js').write_text(pathlib.Path('study-garden-points-fix.js').read_text(encoding='utf-8'), encoding='utf-8')
           print('Prepared Study Garden:', len(text), 'chars', 'version', version)
           PY
 
