@@ -9,6 +9,7 @@ on:
       - study-garden-cleanup.js
       - study-garden-calendar.js
       - study-garden-progress.js
+      - study-garden-points-fix.js
       - .github/workflows/build-study-garden-apk.yml
   pull_request:
     branches: [main]
@@ -18,6 +19,7 @@ on:
       - study-garden-cleanup.js
       - study-garden-calendar.js
       - study-garden-progress.js
+      - study-garden-points-fix.js
       - .github/workflows/build-study-garden-apk.yml
   workflow_dispatch:
 
@@ -84,12 +86,13 @@ jobs:
           [data-page="calendar"] .calendar-shift{font-size:13px!important;line-height:1!important}
           @media(max-width:480px){[data-page="calendar"] #newCalendarEventBtn{font-size:8.5px!important;padding:3px 5px!important;height:22px!important;min-height:22px!important}[data-page="calendar"] #calendarSelectedShift{font-size:7.5px!important;padding:2px 4px!important}}
           </style>'''
-          text = html.decode('utf-8').replace('</body>', '<script src="./patch.js"></script><script src="./cleanup.js"></script><script src="./calendar.js"></script><script src="./progress.js"></script>' + compact_style + '</body>')
+          text = html.decode('utf-8').replace('</body>', '<script src="./patch.js"></script><script src="./cleanup.js"></script><script src="./calendar.js"></script><script src="./progress.js"></script><script src="./points-fix.js"></script>' + compact_style + '</body>')
           pathlib.Path('apk-build/www/index.html').write_text(text, encoding='utf-8')
           pathlib.Path('apk-build/www/patch.js').write_text(pathlib.Path('study-garden-patch.js').read_text(encoding='utf-8'), encoding='utf-8')
           pathlib.Path('apk-build/www/cleanup.js').write_text(pathlib.Path('study-garden-cleanup.js').read_text(encoding='utf-8'), encoding='utf-8')
           pathlib.Path('apk-build/www/calendar.js').write_text(pathlib.Path('study-garden-calendar.js').read_text(encoding='utf-8'), encoding='utf-8')
           pathlib.Path('apk-build/www/progress.js').write_text(pathlib.Path('study-garden-progress.js').read_text(encoding='utf-8'), encoding='utf-8')
+          pathlib.Path('apk-build/www/points-fix.js').write_text(pathlib.Path('study-garden-points-fix.js').read_text(encoding='utf-8'), encoding='utf-8')
           print(f'Restored Study Garden: {len(text)} chars')
           PY
           grep -q 'Study Garden' apk-build/www/index.html
@@ -97,6 +100,8 @@ jobs:
           grep -q '完整套卷训练' apk-build/www/cleanup.js
           grep -q 'data-page="calendar"' apk-build/www/calendar.js
           grep -q '专注统计' apk-build/www/progress.js
+          grep -q '已预支兑换' apk-build/www/points-fix.js
+          grep -q 'if(t.completed)return card' apk-build/www/points-fix.js
           grep -q 'calendar-compact-v2' apk-build/www/index.html
           test -s apk-build/www/index.html
 
